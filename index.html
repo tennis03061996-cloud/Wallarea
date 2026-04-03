@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>そらぽけ</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="そらぽけ">
+    
+    <link rel="icon" href="assets/icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/icon.png">
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+    <div class="header-left">
+        <h1>そらぽけ</h1>
+        <button class="moon-btn" onclick="openMoonModal()">
+            <span id="headerMoonIcon" class="moon-icon-mini">🌑</span>
+            <span id="headerMoonName" style="font-size: 0.75rem;">月齢--</span>
+        </button>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <button class="header-action-btn" onclick="openSettingsModal()" style="font-size:0.9rem;">⚙️設定</button>
+        <button class="header-action-btn" onclick="fetchGPSWeather(false)">📍</button>
+        <button class="header-action-btn" onclick="manualRefresh()">🔄</button>
+    </div>
+</header>
+
+<div id="loading-overlay">データを最新に更新中...</div>
+
+<div id="moonModal" class="modal-overlay">
+    <div class="modal-content moon-modal-content">
+        <span class="modal-close" onclick="closeMoonModal()" style="color: #ccc;">&times;</span>
+        <h3 class="modal-title" style="color: var(--accent); border-bottom-color: rgba(255,255,255,0.2);">🌙 今夜のお月様</h3>
+        <div id="moonLargeIcon" class="moon-graphic">🌑</div>
+        <h2 id="moonPhaseName" style="color: white; margin: 5px 0; font-size: 1.5rem;">読込中...</h2>
+        <p id="moonAgeDetail" style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 20px;"></p>
+        <div class="astro-event-list">
+            <h4 style="margin: 0 0 10px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">🔭 注目イベント </h4>
+            <div id="naojStatus" style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">国立天文台データを検索中...</div>
+            <div id="eventContainer">イベントを確認中...</div>
+        </div>
+        <p style="font-size: 0.6rem; margin-top: 15px; opacity: 0.6;">情報提供: 国立天文台(NAOJ)</p>
+    </div>
+</div>
+
+<div id="gpsModal" class="modal-overlay">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <h3 class="modal-title" style="color: var(--primary);">📍 現在地の天気と気温</h3>
+        <div id="gpsLoading">GPS情報を取得しています...</div>
+        <div id="gpsResult" style="display:none;">
+            <div class="gps-weather-large" id="gpsIcon">☀️</div>
+            <p class="gps-temp-large" id="gpsTemp">--℃</p>
+            <p style="font-weight: bold; color: #444;" id="gpsDesc">晴れ</p>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+        <span class="modal-close" onclick="closeSettingsModal()">&times;</span>
+        <h3 class="modal-title">⚙️ 地域と初期表示の設定</h3>
+        
+        <div style="margin-bottom: 15px; text-align: left;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px; color:var(--primary);">🌟 アプリを開いた時に最初に表示する県</label>
+            <select id="defaultPrefSelect" class="settings-select"></select>
+        </div>
+
+        <div style="font-weight: bold; margin-bottom: 10px; text-align: left; color:var(--primary);">🗾 タブに表示する地域を選択</div>
+        <div id="regionSettingsContainer" style="text-align: left;">
+            </div>
+
+        <div style="position: sticky; bottom: -20px; background: white; padding: 15px 0 5px; border-top: 1px solid #eee; text-align: center; margin-top: 15px;">
+            <button class="action-btn" style="background: var(--primary); width: 100%; font-size:1rem; padding: 12px;" onclick="saveSettings()">設定を保存して更新</button>
+        </div>
+    </div>
+</div>
+
+<div class="tabs-container" id="regionTabs"></div>
+<div class="tabs-container sub-tabs-container" id="prefTabs"></div>
+
+<div class="container">
+    <div class="card">
+        <h2>1. 現在の実況 (<span id="areaLabel">読込中...</span>)</h2>
+        <div class="current-weather-box">
+            <div class="current-icon-large" id="prefCurrentDesc">☀️ --</div>
+            <div class="current-temp-large" id="prefCurrentTemp">--℃</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 style="border-left-color: #0284c7; color: #0284c7;">2. 短期天気予報・気温</h2>
+        <div id="shortForecastsWrapper"></div>
+    </div>
+
+    <div class="card">
+        <h2 style="border-left-color: #d97706; color: #d97706;">3. 週間天気予報・気温</h2>
+        <div id="weeklyForecastsWrapper"></div>
+    </div>
+
+    <div class="card">
+        <h2>4. 天気概況</h2>
+        <div id="overview" class="info-text">読込中...</div>
+    </div>
+
+    <div class="card">
+        <h2>5. 発表中の注意報・警報</h2>
+        <div id="alertContainer">確認中...</div>
+        <div style="margin-top: 10px; text-align: right;">
+            <a id="linkAlert" href="#" target="_blank" style="font-size: 0.85rem; color: #004080; font-weight: bold;">→ 気象庁HPで詳細確認</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>6. 気象情報の発表タイトル</h2>
+        <div id="infoContainer">確認中...</div>
+    </div>
+
+    <div class="card">
+        <h2>7. 実況・予想天気図</h2>
+        <div class="map-controls">
+            <button class="map-nav-btn" onclick="prevMap()">◀ 過去</button>
+            <button class="map-nav-btn latest-btn" onclick="latestMap()">最新実況</button>
+            <button class="map-nav-btn" onclick="nextMap()">予想 ▶</button>
+        </div>
+        <div id="mapLabel" class="map-label">読込中...</div>
+        <div class="map-container" id="mapBox">検索中...</div>
+    </div>
+
+    <div class="card">
+        <h2>8. 地震・台風・解説資料</h2>
+        <div class="btn-grid" style="margin-bottom: 10px;">
+            <a href="https://www.jma.go.jp/bosai/map.html#contents=earthquake_map" target="_blank" class="action-btn" style="background:#cc0000;">地震情報</a>
+            <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon" target="_blank" class="action-btn" style="background:#ff8c00;">台風情報</a>
+        </div>
+        <div class="btn-grid">
+            <a href="https://www.data.jma.go.jp/yoho/data/jishin/kaisetsu_tanki_latest.pdf" target="_blank" class="action-btn" style="background:#0284c7; font-size: 0.8rem;">📘 短期予報解説資料</a>
+            <a href="https://www.data.jma.go.jp/yoho/data/jishin/kaisetsu_shukan_latest.pdf" target="_blank" class="action-btn" style="background:#059669; font-size: 0.8rem;">📗 週間予報解説資料</a>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>9. 気象台からのコメント</h2>
+        <div class="observatory-comment-box" id="observatoryBox" style="height: 350px; overflow: hidden;">
+            <iframe id="commentIframe" style="width: 100%; height: 100%; border: none; background: #fff;"></iframe>
+        </div>
+    </div>
+</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
