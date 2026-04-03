@@ -9,7 +9,6 @@ let astroEvents = [
     { date: "10月6日", name: "中秋の名月", type: "月" }
 ];
 
-// ✨全国47都道府県のマスターデータ
 const regionsData = {
     "北海道": [
         {name: "宗谷", code: "011000"}, {name: "上川・留萌", code: "012000"}, {name: "網走・北見・紋別", code: "013000"},
@@ -119,7 +118,7 @@ function telopToText(code) {
 }
 
 /* ==========================================
-   ⚙️ カスタマイズ設定エリア（NEW!）
+   ⚙️ カスタマイズ設定エリア
 ========================================== */
 let currentCode = '270000';
 let currentName = '大阪';
@@ -128,7 +127,6 @@ const DEFAULT_PREFS = ["滋賀", "京都", "大阪", "兵庫", "奈良", "和歌
 let savedPrefs = [];
 let savedDefault = "大阪";
 
-// 🛡️ 壊れたデータでも絶対にクラッシュしない「超・安全な」設定読み込み
 function loadSettings() {
     try {
         const storedPrefs = localStorage.getItem('sorapoke_prefs');
@@ -152,12 +150,10 @@ function loadSettings() {
     }
 }
 
-// ユーザーの設定に合わせて、地方ごとのタブを作る魔法の関数
 function initTabs() {
     const regionContainer = document.getElementById('regionTabs');
     const prefContainer = document.getElementById('prefTabs');
 
-    // ユーザーが選んだ県が含まれている「地方」だけを抽出するよ！
     const activeRegions = {};
     for (const region in regionsData) {
         const activePrefsInRegion = regionsData[region].filter(p => savedPrefs.includes(p.name));
@@ -169,7 +165,6 @@ function initTabs() {
     const regionNames = Object.keys(activeRegions);
     if (regionNames.length === 0) return;
 
-    // 「ホーム」の県がどの地方にあるかを探す
     let defaultRegion = regionNames[0];
     for (const region in activeRegions) {
         if (activeRegions[region].some(p => p.name === savedDefault)) {
@@ -186,7 +181,6 @@ function initTabs() {
     regionHtml += '</div>';
     regionContainer.innerHTML = regionHtml;
 
-    // 最初の地方タブをセットアップ！
     const defaultRegionTab = regionContainer.querySelector('.tab.active');
     selectRegion(defaultRegion, defaultRegionTab, savedDefault);
 }
@@ -208,7 +202,6 @@ function selectRegion(regionName, el, initialPrefName = null) {
     prefHtml += '</div>';
     prefContainer.innerHTML = prefHtml;
 
-    // 次にクリックする県（サブタブ）を決める！
     let targetSubTab;
     if (initialPrefName) {
         targetSubTab = prefContainer.querySelector(`.sub-tab[data-name="${initialPrefName}"]`);
@@ -218,7 +211,6 @@ function selectRegion(regionName, el, initialPrefName = null) {
     }
 
     if (targetSubTab) {
-        // ✨ ここが超重要！ボタンを「プログラムで強制的にクリック」して、データを自動で持ってくる！
         setTimeout(() => targetSubTab.click(), 10);
     }
 }
@@ -333,10 +325,9 @@ function saveSettings() {
     savedDefault = newDefault;
     
     closeSettingsModal();
-    initTabs(); // 設定を保存したら画面のタブを作り直すよ！
+    initTabs(); 
 }
 
-// --- 手動更新ボタン用 ---
 function manualRefresh() {
     updateArea(currentCode, currentName, null);
     loadWeatherMap();
@@ -373,12 +364,10 @@ function renderAstroEvents() {
     const container = document.getElementById('eventContainer');
     if(!container) return;
     
-    // 今日の日付を境にして、終わったイベントは見せないようにするよ！
     const today = new Date().toISOString().split('T')[0];
     let upcomingEvents = [];
 
     astroEvents.forEach(e => {
-        // "4月22日" のような文字を、比較できるように "04-22" に変換する魔法
         const match = e.date.match(/(\d{1,2})月(\d{1,2})日/);
         if (match) {
             const m = String(match[1]).padStart(2, '0');
@@ -386,7 +375,7 @@ function renderAstroEvents() {
             const eventDateStr = `2026-${m}-${d}`; 
             if (eventDateStr >= today) upcomingEvents.push(e);
         } else {
-            upcomingEvents.push(e); // 日付がわからないものはとりあえず表示
+            upcomingEvents.push(e);
         }
     });
 
@@ -491,7 +480,13 @@ async function fetchCurrentWeather(lat, lon, target) {
         const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=Asia%2FTokyo`);
         const data = await res.json();
         const info = decodeWMO(data.current_weather.weathercode);
+        
+        // ▼ ここで時刻をパースして綺麗にする！
+        const obsDate = new Date(data.current_weather.time);
+        const timeStr = `${obsDate.getHours()}時${String(obsDate.getMinutes()).padStart(2, '0')}分 現在`;
+
         if(target === 'pref') {
+            document.getElementById('obsTimeLabel').innerText = timeStr; // 時刻を反映！
             document.getElementById('prefCurrentDesc').innerText = `${info.icon} ${info.text}`;
             document.getElementById('prefCurrentTemp').innerText = `${data.current_weather.temperature}℃`;
         } else if(target === 'gps') {
@@ -650,7 +645,7 @@ async function updateArea(code, name, el) {
                         const dateStr = t.split('T')[0];
                         const timeHourStr = t.split('T')[1].substring(0, 2);
                         const popStr = targetArea.pops[i];
-                        if (!dailyData[dateStr]) dailyData[dateStr] = { popsArray: ["-", "-", "-", "-"] };
+                        if (!dailyData[dateStr]) dailyData[dateStr] = { popsArray: ["-", "-", "-", "-"], minTemp: "-", maxTemp: "-" };
                         if (popStr !== undefined && popStr !== "") {
                             let popIdx = -1;
                             if (timeHourStr === "00") popIdx = 0;
@@ -672,9 +667,10 @@ async function updateArea(code, name, el) {
                     let dayLabel = `${d.getMonth()+1}/${d.getDate()}`;
                     if(dateStr === new Date().toISOString().split('T')[0]) dayLabel = "今日";
                     else if(dateStr === new Date(Date.now() + 86400000).toISOString().split('T')[0]) dayLabel = "明日";
-                    if (!dailyData[dateStr]) dailyData[dateStr] = {};
+                    
+                    if (!dailyData[dateStr]) dailyData[dateStr] = { minTemp: "-", maxTemp: "-" };
                     let wText = targetArea.weathers ? targetArea.weathers[index] : telopToText(targetArea.weatherCodes[index]);
-                    dailyData[dateStr] = { ...dailyData[dateStr], dateText: dayLabel, weatherCode: targetArea.weatherCodes[index], weatherText: wText, minTemp: dailyData[dateStr].minTemp || "-", maxTemp: dailyData[dateStr].maxTemp || "-", popsArray: dailyData[dateStr].popsArray || ["-", "-", "-", "-"] };
+                    dailyData[dateStr] = { ...dailyData[dateStr], dateText: dayLabel, weatherCode: targetArea.weatherCodes[index], weatherText: wText, popsArray: dailyData[dateStr].popsArray || ["-", "-", "-", "-"] };
                 });
             }
 
@@ -699,20 +695,26 @@ async function updateArea(code, name, el) {
                 weeklyWeather.timeDefines.forEach((time, index) => {
                     const dateStr = time.split('T')[0];
                     const wCode = targetAreaW.weatherCodes[index];
-                    if (!dailyData[dateStr]) dailyData[dateStr] = {};
+                    if (!dailyData[dateStr]) dailyData[dateStr] = { minTemp: "-", maxTemp: "-" };
                     let wText = dailyData[dateStr].weatherText || telopToText(wCode);
                     if (!dailyData[dateStr].weatherCode) {
                         const d = new Date(time);
-                        dailyData[dateStr] = { ...dailyData[dateStr], dateText: `${d.getMonth()+1}/${d.getDate()}`, weatherCode: wCode, weatherText: wText, minTemp: "-", maxTemp: "-" };
+                        dailyData[dateStr] = { ...dailyData[dateStr], dateText: `${d.getMonth()+1}/${d.getDate()}`, weatherCode: wCode, weatherText: wText };
                     }
                 });
+                
+                // ▼ ここが最低気温のバグ修正部分！空文字の時は上書きしないように守るよ
                 if (weeklyTemps) {
                     const targetAreaT = weeklyTemps.areas.find(a => a.area.code === areaCode) || weeklyTemps.areas[0];
                     weeklyTemps.timeDefines.forEach((time, index) => {
                         const dateStr = time.split('T')[0];
                         if (dailyData[dateStr]) {
-                            if (targetAreaT.tempsMin?.[index]) dailyData[dateStr].minTemp = targetAreaT.tempsMin[index];
-                            if (targetAreaT.tempsMax?.[index]) dailyData[dateStr].maxTemp = targetAreaT.tempsMax[index];
+                            if (targetAreaT.tempsMin && targetAreaT.tempsMin[index] !== undefined && targetAreaT.tempsMin[index] !== "") {
+                                dailyData[dateStr].minTemp = targetAreaT.tempsMin[index];
+                            }
+                            if (targetAreaT.tempsMax && targetAreaT.tempsMax[index] !== undefined && targetAreaT.tempsMax[index] !== "") {
+                                dailyData[dateStr].maxTemp = targetAreaT.tempsMax[index];
+                            }
                         }
                     });
                 }
@@ -725,14 +727,19 @@ async function updateArea(code, name, el) {
                 const mappedCode = jmaIconMap[d.weatherCode] || (String(d.weatherCode).charAt(0) + "00");
                 const iconUrl = `https://www.jma.go.jp/bosai/forecast/img/${mappedCode}.svg`;
                 const popDisplay = popMap[dateStr] !== undefined ? `${popMap[dateStr]}%` : "--%";
+                
+                // ▼ 画面に書き出す時も、空っぽなら「-」にする安心設計！
+                const displayMax = d.maxTemp !== "-" ? `${d.maxTemp}℃` : "-";
+                const displayMin = d.minTemp !== "-" ? `${d.minTemp}℃` : "-";
+
                 if (dayCount < 3) {
                     let popSectionHtml = `<div class="pop-box">☔ ${popDisplay}</div>`;
                     if (dayCount < 2 && d.popsArray) {
                         popSectionHtml = `<table class="pop-table"><tr><th>0-6</th><th>6-12</th><th>12-18</th><th>18-24</th></tr><tr><td>${d.popsArray[0]}</td><td>${d.popsArray[1]}</td><td>${d.popsArray[2]}</td><td>${d.popsArray[3]}</td></tr></table>`;
                     }
-                    shortHtml += `<div class="forecast-day"><div class="forecast-date">${d.dateText}</div><img src="${iconUrl}" class="weather-img"><div class="weather-text">${d.weatherText}</div>${popSectionHtml}<div class="temp-box"><span class="temp-max">${d.maxTemp}${d.maxTemp!=="-"?"℃":""}</span> / <span class="temp-min">${d.minTemp}${d.minTemp!=="-"?"℃":""}</span></div></div>`;
+                    shortHtml += `<div class="forecast-day"><div class="forecast-date">${d.dateText}</div><img src="${iconUrl}" class="weather-img"><div class="weather-text">${d.weatherText}</div>${popSectionHtml}<div class="temp-box"><span class="temp-max">${displayMax}</span> / <span class="temp-min">${displayMin}</span></div></div>`;
                 } else {
-                    weeklyHtml += `<div class="forecast-day"><div class="forecast-date">${d.dateText}</div><img src="${iconUrl}" class="weather-img"><div class="weather-text">${d.weatherText}</div><div class="pop-box">☔ ${popDisplay}</div><div class="temp-box"><span class="temp-max">${d.maxTemp}${d.maxTemp!=="-"?"℃":""}</span>/<br><span class="temp-min">${d.minTemp}${d.minTemp!=="-"?"℃":""}</span></div></div>`;
+                    weeklyHtml += `<div class="forecast-day"><div class="forecast-date">${d.dateText}</div><img src="${iconUrl}" class="weather-img"><div class="weather-text">${d.weatherText}</div><div class="pop-box">☔ ${popDisplay}</div><div class="temp-box"><span class="temp-max">${displayMax}</span>/<br><span class="temp-min">${displayMin}</span></div></div>`;
                 }
                 dayCount++;
             });
@@ -810,17 +817,33 @@ async function updateArea(code, name, el) {
     }
 }
 
-/* 🚀 アプリの起動！（画面との喧嘩を防ぐ「超安全版」） */
+/* 🚀 アプリの起動！ */
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. 設定を読み込んで、タブを作り直す
     loadSettings();
     initTabs();
-    
-    // 2. 裏側でいろいろなデータを集める
     updateMoonHeader();
     loadWeatherMap();
     fetchNAOJEvents();
     
-    // 3. GPS現在地天気は少し待ってから静かに読み込む
     setTimeout(() => fetchGPSWeather(false), 1000);
 });
+
+// --- ▼ 追加：自動更新 ＆ 画面復帰時の更新エンジン ▼ ---
+
+// 1. スマホで画面を開き直したとき（タブがアクティブになったとき）に更新する！
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        console.log("画面がアクティブになりました。データを更新します。");
+        manualRefresh();
+    }
+});
+
+// 2. 開きっぱなしでも、1時間（3,600,000ミリ秒）ごとに勝手に更新する！
+setInterval(() => {
+    if (document.visibilityState === "visible") {
+        console.log("1時間経過しました。データを自動更新します。");
+        manualRefresh();
+    }
+}, 3600000); 
+
+// ----------------------------------------------------
