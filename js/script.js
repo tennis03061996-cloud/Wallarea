@@ -481,12 +481,12 @@ async function fetchCurrentWeather(lat, lon, target) {
         const data = await res.json();
         const info = decodeWMO(data.current_weather.weathercode);
         
-        // ▼ ここで時刻をパースして綺麗にする！
         const obsDate = new Date(data.current_weather.time);
         const timeStr = `${obsDate.getHours()}時${String(obsDate.getMinutes()).padStart(2, '0')}分 現在`;
 
         if(target === 'pref') {
-            document.getElementById('obsTimeLabel').innerText = timeStr; // 時刻を反映！
+            const obsTimeLabel = document.getElementById('obsTimeLabel');
+            if(obsTimeLabel) obsTimeLabel.innerText = timeStr; 
             document.getElementById('prefCurrentDesc').innerText = `${info.icon} ${info.text}`;
             document.getElementById('prefCurrentTemp').innerText = `${data.current_weather.temperature}℃`;
         } else if(target === 'gps') {
@@ -603,11 +603,23 @@ async function updateArea(code, name, el) {
         let allShortHtml = "";
         let allWeeklyHtml = "";
 
+        // JST基準の「今日」と「明日」の文字列を作る
+        const todayDate = new Date();
+        const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth()+1).padStart(2,'0')}-${String(todayDate.getDate()).padStart(2,'0')}`;
+        const tmrwDate = new Date(todayDate.getTime() + 86400000);
+        const tomorrowStr = `${tmrwDate.getFullYear()}-${String(tmrwDate.getMonth()+1).padStart(2,'0')}-${String(tmrwDate.getDate()).padStart(2,'0')}`;
+
         mainAreas.forEach((area) => {
             const areaCode = area.area.code;
             const areaName = area.area.name;
             let dailyData = {}; 
             let popMap = {};
+
+            const initDay = (dStr) => {
+                if (!dailyData[dStr]) {
+                    dailyData[dStr] = { popsArray: ["-", "-", "-", "-"], minTemp: "-", maxTemp: "-" };
+                }
+            };
 
             try {
                 const shortPopSeries = fData[0]?.timeSeries?.find(s => s.areas && s.areas.some(a => a.pops));
@@ -615,6 +627,7 @@ async function updateArea(code, name, el) {
                     const targetArea = shortPopSeries.areas.find(a => a.area.code === areaCode) || shortPopSeries.areas[0];
                     shortPopSeries.timeDefines.forEach((t, i) => {
                         const dateStr = t.split('T')[0];
+                        initDay(dateStr);
                         const popStr = targetArea.pops[i];
                         if (popStr !== undefined && popStr !== "") {
                             const popVal = parseInt(popStr);
@@ -629,6 +642,7 @@ async function updateArea(code, name, el) {
                     const targetArea = weeklyPopSeries.areas.find(a => a.area.code === areaCode) || weeklyPopSeries.areas[0];
                     weeklyPopSeries.timeDefines.forEach((t, i) => {
                         const dateStr = t.split('T')[0];
+                        initDay(dateStr);
                         const popStr = targetArea.pops[i];
                         if (popStr !== undefined && popStr !== "") {
                             const popVal = parseInt(popStr);
@@ -643,9 +657,9 @@ async function updateArea(code, name, el) {
                     const targetArea = shortPopSeries.areas.find(a => a.area.code === areaCode) || shortPopSeries.areas[0];
                     shortPopSeries.timeDefines.forEach((t, i) => {
                         const dateStr = t.split('T')[0];
+                        initDay(dateStr);
                         const timeHourStr = t.split('T')[1].substring(0, 2);
                         const popStr = targetArea.pops[i];
-                        if (!dailyData[dateStr]) dailyData[dateStr] = { popsArray: ["-", "-", "-", "-"], minTemp: "-", maxTemp: "-" };
                         if (popStr !== undefined && popStr !== "") {
                             let popIdx = -1;
                             if (timeHourStr === "00") popIdx = 0;
@@ -658,62 +672,87 @@ async function updateArea(code, name, el) {
                 }
             } catch (e) {}
 
+            // 短期予報（天気）
             if (fData[0] && fData[0].timeSeries && fData[0].timeSeries[0]) {
                 const shortWeather = fData[0].timeSeries[0];
                 const targetArea = shortWeather.areas.find(a => a.area.code === areaCode) || shortWeather.areas[0];
                 shortWeather.timeDefines.forEach((time, index) => {
                     const dateStr = time.split('T')[0];
-                    const d = new Date(time);
-                    let dayLabel = `${d.getMonth()+1}/${d.getDate()}`;
-                    if(dateStr === new Date().toISOString().split('T')[0]) dayLabel = "今日";
-                    else if(dateStr === new Date(Date.now() + 86400000).toISOString().split('T')[0]) dayLabel = "明日";
+                    initDay(dateStr);
                     
-                    if (!dailyData[dateStr]) dailyData[dateStr] = { minTemp: "-", maxTemp: "-" };
+                    let dayLabel = `${parseInt(dateStr.split('-')[1])}/${parseInt(dateStr.split('-')[2])}`;
+                    if(dateStr === todayStr) dayLabel = "今日";
+                    else if(dateStr === tomorrowStr) dayLabel = "明日";
+                    
                     let wText = targetArea.weathers ? targetArea.weathers[index] : telopToText(targetArea.weatherCodes[index]);
-                    dailyData[dateStr] = { ...dailyData[dateStr], dateText: dayLabel, weatherCode: targetArea.weatherCodes[index], weatherText: wText, popsArray: dailyData[dateStr].popsArray || ["-", "-", "-", "-"] };
+                    
+                    dailyData[dateStr] = Object.assign(dailyData[dateStr], {
+                        dateText: dayLabel,
+                        weatherCode: targetArea.weatherCodes[index],
+                        weatherText: wText
+                    });
                 });
             }
 
+            // 短期予報（気温）
             if (fData[0] && fData[0].timeSeries && fData[0].timeSeries.length > 2) {
                 const shortTemps = fData[0].timeSeries[2];
                 const targetArea = shortTemps.areas.find(a => a.area.code === areaCode) || shortTemps.areas[0];
                 shortTemps.timeDefines.forEach((time, index) => {
                     const dateStr = time.split('T')[0];
+                    initDay(dateStr);
                     const timeHour = time.split('T')[1].substring(0, 2);
-                    if (dailyData[dateStr] && index < targetArea.temps.length) {
+                    if (index < targetArea.temps.length) {
                         const tempValue = targetArea.temps[index];
                         if (timeHour === "00" || timeHour === "06") { dailyData[dateStr].minTemp = tempValue; }
-                        else if (timeHour === "09" || timeHour === "12") { dailyData[dateStr].maxTemp = tempValue; }
+                        else if (timeHour === "09" || timeHour === "12" || timeHour === "15") { dailyData[dateStr].maxTemp = tempValue; }
                     }
                 });
             }
 
+            // 週間予報
             if (fData.length > 1 && fData[1].timeSeries) {
                 const weeklyWeather = fData[1].timeSeries[0];
                 const weeklyTemps = fData[1].timeSeries.length > 1 ? fData[1].timeSeries[1] : null;
                 const targetAreaW = weeklyWeather.areas.find(a => a.area.code === areaCode) || weeklyWeather.areas[0];
+                
+                // 週間予報（天気）
                 weeklyWeather.timeDefines.forEach((time, index) => {
                     const dateStr = time.split('T')[0];
+                    initDay(dateStr);
                     const wCode = targetAreaW.weatherCodes[index];
-                    if (!dailyData[dateStr]) dailyData[dateStr] = { minTemp: "-", maxTemp: "-" };
                     let wText = dailyData[dateStr].weatherText || telopToText(wCode);
                     if (!dailyData[dateStr].weatherCode) {
-                        const d = new Date(time);
-                        dailyData[dateStr] = { ...dailyData[dateStr], dateText: `${d.getMonth()+1}/${d.getDate()}`, weatherCode: wCode, weatherText: wText };
+                        dailyData[dateStr] = Object.assign(dailyData[dateStr], {
+                            dateText: `${parseInt(dateStr.split('-')[1])}/${parseInt(dateStr.split('-')[2])}`,
+                            weatherCode: wCode,
+                            weatherText: wText
+                        });
                     }
                 });
                 
-                // ▼ ここが最低気温のバグ修正部分！空文字の時は上書きしないように守るよ
+                // 週間予報（気温）★★ここがポイント！完全防御策★★
                 if (weeklyTemps) {
                     const targetAreaT = weeklyTemps.areas.find(a => a.area.code === areaCode) || weeklyTemps.areas[0];
                     weeklyTemps.timeDefines.forEach((time, index) => {
                         const dateStr = time.split('T')[0];
-                        if (dailyData[dateStr]) {
-                            if (targetAreaT.tempsMin && targetAreaT.tempsMin[index] !== undefined && targetAreaT.tempsMin[index] !== "") {
-                                dailyData[dateStr].minTemp = targetAreaT.tempsMin[index];
+                        initDay(dateStr);
+
+                        // 💡 週間予報にある「今日」のデータは、ダミーデータだったり中途半端なので完全に無視！
+                        // 今日のデータは必ず短期予報(fData[0])の正しいデータだけを信用する！
+                        if (dateStr === todayStr) return;
+                        
+                        const minT = targetAreaT.tempsMin ? targetAreaT.tempsMin[index] : undefined;
+                        const maxT = targetAreaT.tempsMax ? targetAreaT.tempsMax[index] : undefined;
+
+                        if (minT !== undefined && minT !== "") {
+                            if (dailyData[dateStr].minTemp === "-") {
+                                dailyData[dateStr].minTemp = minT;
                             }
-                            if (targetAreaT.tempsMax && targetAreaT.tempsMax[index] !== undefined && targetAreaT.tempsMax[index] !== "") {
-                                dailyData[dateStr].maxTemp = targetAreaT.tempsMax[index];
+                        }
+                        if (maxT !== undefined && maxT !== "") {
+                            if (dailyData[dateStr].maxTemp === "-") {
+                                dailyData[dateStr].maxTemp = maxT;
                             }
                         }
                     });
@@ -724,11 +763,25 @@ async function updateArea(code, name, el) {
             Object.keys(dailyData).sort().forEach(dateStr => {
                 const d = dailyData[dateStr];
                 if (!d.weatherCode) return;
+                
+                // --- 🛡️ 最終クレンジング処理（サニタイズ） ---
+                // 空っぽの文字、undefined、nullなどは絶対に "-" にリセットする
+                if (!d.minTemp || String(d.minTemp).trim() === "") d.minTemp = "-";
+                if (!d.maxTemp || String(d.maxTemp).trim() === "") d.maxTemp = "-";
+
+                // 万が一、数字じゃないヘンな記号や文字が入っていた場合も "-" にする
+                if (d.minTemp !== "-" && isNaN(Number(d.minTemp))) d.minTemp = "-";
+                if (d.maxTemp !== "-" && isNaN(Number(d.maxTemp))) d.maxTemp = "-";
+
+                // 【念のため】今日のデータで、万が一最低気温と最高気温が全く同じ数字になっていたらダミーなので "-" にする
+                if (dateStr === todayStr && d.minTemp !== "-" && d.minTemp === d.maxTemp) {
+                    d.minTemp = "-";
+                }
+                
                 const mappedCode = jmaIconMap[d.weatherCode] || (String(d.weatherCode).charAt(0) + "00");
                 const iconUrl = `https://www.jma.go.jp/bosai/forecast/img/${mappedCode}.svg`;
                 const popDisplay = popMap[dateStr] !== undefined ? `${popMap[dateStr]}%` : "--%";
                 
-                // ▼ 画面に書き出す時も、空っぽなら「-」にする安心設計！
                 const displayMax = d.maxTemp !== "-" ? `${d.maxTemp}℃` : "-";
                 const displayMin = d.minTemp !== "-" ? `${d.minTemp}℃` : "-";
 
@@ -828,9 +881,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => fetchGPSWeather(false), 1000);
 });
 
-// --- ▼ 追加：自動更新 ＆ 画面復帰時の更新エンジン ▼ ---
-
-// 1. スマホで画面を開き直したとき（タブがアクティブになったとき）に更新する！
+// ▼ 自動更新 ＆ 画面復帰時の更新エンジン ▼
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
         console.log("画面がアクティブになりました。データを更新します。");
@@ -838,12 +889,9 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 
-// 2. 開きっぱなしでも、1時間（3,600,000ミリ秒）ごとに勝手に更新する！
 setInterval(() => {
     if (document.visibilityState === "visible") {
         console.log("1時間経過しました。データを自動更新します。");
         manualRefresh();
     }
-}, 3600000); 
-
-// ----------------------------------------------------
+}, 3600000);
