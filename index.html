@@ -13,7 +13,117 @@
     <link rel="icon" href="assets/icon.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/icon.png">
 
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* ==========================================
+           🎨 スタイルシート (旧 style.css)
+        ========================================== */
+        :root { --primary: #004080; --warning: #d9534f; --accent: #ffc107; --bg: #f0f2f5; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); color: #333; padding-bottom: 40px; overflow-x: hidden; }
+
+        header { background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        h1 { font-size: 1.1rem; margin: 0; white-space: nowrap; }
+
+        .moon-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 0.9rem; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .moon-btn:active { transform: scale(0.95); }
+        .moon-icon-mini { font-size: 1.2rem; }
+
+        .header-action-btn { background: #fff; color: var(--primary); border: none; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 1rem; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; }
+        .header-action-btn:active { transform: scale(0.95); }
+
+        /* 2段タブのデザイン */
+        .tabs-container { overflow-x: auto; background: #fff; position: sticky; z-index: 999; scroll-behavior: smooth; border-bottom: 1px solid #ddd; }
+        .tabs-container::-webkit-scrollbar { display: none; }
+        .tabs-container { -ms-overflow-style: none; scrollbar-width: none; }
+        #regionTabs { top: 56px; background: #f8f9fa; }
+        #prefTabs { top: 98px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        .tabs { display: flex; width: max-content; }
+        .tab { padding: 10px 14px; cursor: pointer; white-space: nowrap; transition: 0.3s; font-weight: bold; font-size: 0.9rem; border-bottom: 3px solid transparent; color: #555; }
+        .tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: #e7f0fa; }
+        .sub-tab { padding: 10px 14px; cursor: pointer; white-space: nowrap; transition: 0.3s; font-size: 0.85rem; border-right: 1px solid #eee; }
+        .sub-tab.active { background: #e0f2fe; color: #0284c7; font-weight: bold; }
+
+        /* 全体の幅をスッキリさせる */
+        .container { padding: 12px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        h2 { font-size: 1rem; margin-top: 0; color: var(--primary); border-left: 5px solid var(--primary); padding-left: 10px; margin-bottom: 12px; }
+
+        /* 実況UIをスッキリコンパクトに！ */
+        .current-weather-box { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-radius: 8px; padding: 12px 15px; border: 1px solid #7dd3fc; }
+        .current-flex { display: flex; justify-content: space-between; align-items: center; }
+        /* アイコンと気温を小さくしたよ！ */
+        .current-icon-large { font-size: 1.4rem; font-weight: bold; color: #0369a1; display: flex; align-items: center; gap: 5px; }
+        .current-temp-large { font-size: 1.8rem; font-weight: bold; color: #0284c7; line-height: 1; }
+
+        .forecast-container { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-top: 10px; }
+        .forecast-day { background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 12px; min-width: 130px; text-align: center; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .forecast-date { font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; color: #555; }
+        .weather-img { width: 45px; height: 45px; display: block; margin: 0 auto; }
+
+        .pop-table { width: 100%; border-collapse: collapse; margin: 8px 0; background: #fff; font-size: 0.65rem; text-align: center; border-radius: 4px; overflow: hidden; }
+        .pop-table th { background: #e6f2ff; color: #004080; border: 1px solid #b3d9ff; padding: 3px 1px; font-weight: bold; }
+        .pop-table td { border: 1px solid #b3d9ff; padding: 3px 1px; color: #333; }
+        .pop-box { font-size: 0.8rem; color: #0066cc; margin: 5px 0; font-weight: bold; background: #e6f2ff; border-radius: 4px; padding: 2px 0; }
+
+        .wave-box { background: #dbeafe; color: #0284c7; font-size: 0.75rem; padding: 3px; border-radius: 4px; margin-bottom: 5px; text-align: center; border: 1px solid #bae6fd; font-weight: bold; }
+
+        .weather-text { font-size: 0.8rem; margin: 5px 0; min-height: 2.4em; display: flex; align-items: center; justify-content: center; line-height: 1.3; white-space: normal; word-break: keep-all; }
+        .temp-box { font-size: 0.9rem; margin-top: 5px; background: #f4f4f4; border-radius: 4px; padding: 4px; }
+        .temp-max { color: #d9534f; font-weight: bold; }
+        .temp-min { color: #004080; font-weight: bold; }
+
+        .info-text { font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; color: #444; }
+
+        .warning-badge { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-weight: bold; border-left: 5px solid var(--accent); }
+        .danger-badge { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; font-weight: bold; border-left: 5px solid var(--warning); }
+        .safe-badge { background: #d4edda; color: #155724; padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-bottom: 8px; }
+
+        details.info-accordion { margin-top: 5px; background: #f8f9fa; border: 1px solid #eee; border-radius: 6px; padding: 5px; }
+        details.info-accordion summary { cursor: pointer; font-size: 0.85rem; color: #555; font-weight: bold; padding: 5px; outline: none; }
+
+        /* 天気図ナビゲーション */
+        .map-controls { display: flex; justify-content: space-between; margin-bottom: 8px; gap: 5px; }
+        .map-nav-btn { flex: 1; background: #e0e0e0; border: none; padding: 8px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; color: #333; cursor: pointer; transition: 0.2s; }
+        .map-nav-btn:active { transform: scale(0.95); }
+        .map-nav-btn.latest-btn { background: var(--primary); color: white; }
+        .map-label { text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 8px; font-weight: bold; }
+
+        .map-container { text-align: center; background: #eee; border-radius: 8px; overflow: hidden; }
+        img.map-img { max-width: 100%; height: auto; display: block; margin: 0 auto; cursor: zoom-in; }
+
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .action-btn { background: var(--primary); color: white; text-align: center; padding: 12px 5px; text-decoration: none; border-radius: 8px; font-size: 0.85rem; font-weight: bold; display: block; transition: 0.2s; cursor: pointer; border: none; }
+        .action-btn:active { transform: scale(0.98); }
+
+        #loading-overlay { position: fixed; top: 60px; left: 0; right: 0; background: rgba(255,255,255,0.9); text-align: center; padding: 10px; display: none; z-index: 2000; font-size: 0.9rem; font-weight: bold; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .modal-content { background: white; width: 85%; max-width: 400px; border-radius: 12px; padding: 20px; position: relative; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: popIn 0.3s ease-out; }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-close { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; color: #888; cursor: pointer; font-weight: bold; }
+
+        .moon-modal-content { background: radial-gradient(circle at top, #1a1a2e 0%, #0f0f1a 100%); color: white; border: 1px solid #333; }
+        .moon-graphic { font-size: 5rem; margin: 15px 0; filter: drop-shadow(0 0 15px rgba(255,255,255,0.4)); }
+        .astro-event-list { text-align: left; background: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-top: 15px; font-size: 0.9rem; }
+        .event-item { margin-bottom: 8px; display: flex; gap: 8px; align-items: flex-start; }
+        .event-tag { background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; flex-shrink: 0; }
+
+        .gps-weather-large { font-size: 4rem; margin: 10px 0; }
+        .gps-temp-large { font-size: 2.5rem; font-weight: bold; color: var(--primary); margin: 0; }
+
+        .observatory-comment-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; }
+        .sub-area-card { border: 1px solid #e0e0e0; background: #fafafa; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
+        .sub-forecast-title { font-size: 0.95rem; margin: 0 0 10px; color: #0284c7; display: flex; align-items: center; border-bottom: 2px solid #e0f2fe; padding-bottom: 5px; }
+
+        /* ⚙️ 設定モーダル用デザイン */
+        .settings-select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; margin-bottom: 15px; background: #f8f9fa; outline: none; }
+        .region-group { border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+        .region-header { background: #e3f2fd; padding: 10px; font-weight: bold; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #e0e0e0; color: var(--primary); }
+        .pref-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 10px; background: #fff; }
+        .pref-item { display: flex; align-items: center; gap: 5px; font-size: 0.9rem; }
+        .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+    </style>
 </head>
 <body>
 
@@ -34,6 +144,7 @@
 
 <div id="loading-overlay">データを最新に更新中...</div>
 
+<!-- 月齢モーダル -->
 <div id="moonModal" class="modal-overlay">
     <div class="modal-content moon-modal-content">
         <span class="modal-close" onclick="closeMoonModal()" style="color: #ccc;">&times;</span>
@@ -50,6 +161,7 @@
     </div>
 </div>
 
+<!-- GPSモーダル -->
 <div id="gpsModal" class="modal-overlay">
     <div class="modal-content">
         <span class="modal-close" onclick="closeModal()">&times;</span>
@@ -63,6 +175,7 @@
     </div>
 </div>
 
+<!-- ⚙️ 地域と初期表示設定モーダル -->
 <div class="modal-overlay" id="settingsModal">
     <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
         <span class="modal-close" onclick="closeSettingsModal()">&times;</span>
@@ -75,7 +188,8 @@
 
         <div style="font-weight: bold; margin-bottom: 10px; text-align: left; color:var(--primary);">🗾 タブに表示する地域を選択</div>
         <div id="regionSettingsContainer" style="text-align: left;">
-            </div>
+            <!-- JSで全国のチェックボックスを生成するよ -->
+        </div>
 
         <div style="position: sticky; bottom: -20px; background: white; padding: 15px 0 5px; border-top: 1px solid #eee; text-align: center; margin-top: 15px;">
             <button class="action-btn" style="background: var(--primary); width: 100%; font-size:1rem; padding: 12px;" onclick="saveSettings()">設定を保存して更新</button>
@@ -83,15 +197,17 @@
     </div>
 </div>
 
+<!-- エリア選択タブ（2段構造） -->
 <div class="tabs-container" id="regionTabs"></div>
 <div class="tabs-container sub-tabs-container" id="prefTabs"></div>
 
 <div class="container">
-    <div class="card">
+    <div class="card" style="padding-bottom: 10px;">
         <h2>1. 現在の実況 (<span id="areaLabel">読込中...</span>)</h2>
+        <!-- よりコンパクトに整えた実況エリア -->
         <div class="current-weather-box">
-            <div style="text-align: left; font-size: 0.85rem; font-weight: bold; color: #0284c7; margin-bottom: 10px;" id="obsTimeLabel">--時--分 現在</div>
-            <div class="current-flex" style="display: flex; justify-content: space-around; align-items: center;">
+            <div style="text-align: left; font-size: 0.8rem; font-weight: bold; color: #0369a1; margin-bottom: 2px;" id="obsTimeLabel">--時--分 現在</div>
+            <div class="current-flex">
                 <div class="current-icon-large" id="prefCurrentDesc">☀️ --</div>
                 <div class="current-temp-large" id="prefCurrentTemp">--℃</div>
             </div>
@@ -138,14 +254,26 @@
     </div>
 
     <div class="card">
-        <h2>8. 地震・台風・解説資料</h2>
+        <h2>8. リンク・解説資料・各種予報</h2>
+        
+        <!-- 🔗 リンクの順番を並び替えたよ！ -->
         <div class="btn-grid" style="margin-bottom: 10px;">
             <a href="https://www.jma.go.jp/bosai/map.html#contents=earthquake_map" target="_blank" class="action-btn" style="background:#cc0000;">地震情報</a>
             <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon" target="_blank" class="action-btn" style="background:#ff8c00;">台風情報</a>
         </div>
+        
+        <div class="btn-grid" style="margin-bottom: 10px;">
+            <a href="https://www.data.jma.go.jp/yoho/data/jishin/kaisetsu_tanki_latest.pdf" target="_blank" class="action-btn" style="background:#0284c7; font-size: 0.8rem;">📘 短期予報解説資料</a>
+            <a href="https://www.data.jma.go.jp/yoho/data/jishin/kaisetsu_shukan_latest.pdf" target="_blank" class="action-btn" style="background:#059669; font-size: 0.8rem;">📗 週間予報解説資料</a>
+        </div>
+
+        <div class="btn-grid" style="margin-bottom: 10px;">
+            <a href="#" id="linkProbability" target="_blank" class="action-btn" style="background:#8b5cf6;">⚠️ 早期注意情報</a>
+            <a href="#" id="linkTimeseries" target="_blank" class="action-btn" style="background:#14b8a6;">🕒 地域時系列予報</a>
+        </div>
+
         <div class="btn-grid">
-            <a href="https://www.jma.go.jp/bosai/information/data/pdf/kaisetsu_tanki_latest.pdf" target="_blank" class="action-btn" style="background:#0284c7; font-size: 0.8rem;">📘 短期予報解説資料</a>
-            <a href="https://www.jma.go.jp/bosai/information/data/pdf/kaisetsu_shukan_latest.pdf" target="_blank" class="action-btn" style="background:#059669; font-size: 0.8rem;">📗 週間予報解説資料</a>
+            <a href="#" id="linkTwoweek" target="_blank" class="action-btn" style="background:#f43f5e; grid-column: span 2;">🌡️ 2週間気温予報</a>
         </div>
     </div>
     
@@ -157,6 +285,935 @@
     </div>
 </div>
 
-<script src="js/script.js"></script>
+<script>
+/* ==========================================
+   ▼▼▼ 変わらないデータ・設定エリア ▼▼▼
+========================================== */
+const proxyUrl = "https://broken-disk-2256.tennis03061996.workers.dev/?url=";
+
+let astroEvents = [
+    { date: "4月22日", name: "こと座流星群が極大", type: "流星群" },
+    { date: "8月13日", name: "ペルセウス座流星群が極大", type: "流星群" },
+    { date: "10月6日", name: "中秋の名月", type: "月" }
+];
+
+// ✨ アイコンを各地域に追加したよ！名産品や有名なものを選んでみた！
+const regionsData = {
+    "北海道": [
+        {name: "宗谷", code: "011000", icon: "🐄"}, {name: "上川・留萌", code: "012000", icon: "🐧"}, {name: "網走・北見・紋別", code: "013000", icon: "🧊"},
+        {name: "十勝", code: "014030", icon: "🧀"}, {name: "釧路・根室", code: "014100", icon: "🦅"}, {name: "胆振・日高", code: "015000", icon: "🐎"},
+        {name: "石狩・空知・後志", code: "016000", icon: "🍈"}, {name: "渡島・檜山", code: "017000", icon: "🦑"}
+    ],
+    "東北": [
+        {name: "青森", code: "020000", icon: "🍎"}, {name: "岩手", code: "030000", icon: "🍜"}, {name: "宮城", code: "040000", icon: "🎋"},
+        {name: "秋田", code: "050000", icon: "👹"}, {name: "山形", code: "060000", icon: "🍒"}, {name: "福島", code: "070000", icon: "🍑"}
+    ],
+    "関東甲信": [
+        {name: "茨城", code: "080000", icon: "🍈"}, {name: "栃木", code: "090000", icon: "🍓"}, {name: "群馬", code: "100000", icon: "♨️"},
+        {name: "埼玉", code: "110000", icon: "🍘"}, {name: "千葉", code: "120000", icon: "🥜"}, {name: "東京", code: "130000", icon: "🗼"},
+        {name: "神奈川", code: "140000", icon: "⚓"}, {name: "山梨", code: "190000", icon: "🍇"}, {name: "長野", code: "200000", icon: "🏔️"}
+    ],
+    "東海": [
+        {name: "岐阜", code: "210000", icon: "🛖"}, {name: "静岡", code: "220000", icon: "🍵"}, {name: "愛知", code: "230000", icon: "🍤"}, {name: "三重", code: "240000", icon: "🦐"}
+    ],
+    "北陸": [
+        {name: "新潟", code: "150000", icon: "🌾"}, {name: "富山", code: "160000", icon: "🦑"}, {name: "石川", code: "170000", icon: "🦀"}, {name: "福井", code: "180000", icon: "🦕"}
+    ],
+    "近畿": [
+        {name: "滋賀", code: "250000", icon: "🌊"}, {name: "京都", code: "260000", icon: "⛩️"}, {name: "大阪", code: "270000", icon: "🐙"},
+        {name: "兵庫", code: "280000", icon: "🏯"}, {name: "奈良", code: "290000", icon: "🦌"}, {name: "和歌山", code: "300000", icon: "🍊"}
+    ],
+    "中国": [
+        {name: "鳥取", code: "310000", icon: "🐪"}, {name: "島根", code: "320000", icon: "🐰"}, {name: "岡山", code: "330000", icon: "🍑"}, {name: "広島", code: "340000", icon: "🍁"}
+    ],
+    "四国": [
+        {name: "徳島", code: "360000", icon: "💃"}, {name: "香川", code: "370000", icon: "🍜"}, {name: "愛媛", code: "380000", icon: "🍊"}, {name: "高知", code: "390000", icon: "🐟"}
+    ],
+    "九州北部": [
+        {name: "山口", code: "350000", icon: "🐡"}, {name: "福岡", code: "400000", icon: "🍓"}, {name: "佐賀", code: "410000", icon: "🎈"},
+        {name: "長崎", code: "420000", icon: "⛪"}, {name: "熊本", code: "430000", icon: "🐻"}, {name: "大分", code: "440000", icon: "♨️"}
+    ],
+    "九州南部・奄美": [
+        {name: "宮崎", code: "450000", icon: "🥭"}, {name: "鹿児島", code: "460100", icon: "🌋"}, {name: "奄美", code: "460040", icon: "🌺"}
+    ],
+    "沖縄": [
+        {name: "沖縄本島", code: "471000", icon: "🍍"}, {name: "大東島", code: "472000", icon: "🏝️"}, {name: "宮古島", code: "473000", icon: "🏖️"}, {name: "八重山", code: "474000", icon: "🐈"}
+    ]
+};
+
+const prefCoordinates = {
+    "宗谷":{lat:45.415,lon:141.673},"上川・留萌":{lat:43.770,lon:142.364},"網走・北見・紋別":{lat:44.020,lon:144.273},"十勝":{lat:42.923,lon:143.196},"釧路・根室":{lat:42.984,lon:144.381},"胆振・日高":{lat:42.315,lon:140.973},"石狩・空知・後志":{lat:43.062,lon:141.354},"渡島・檜山":{lat:41.768,lon:140.728},
+    "青森":{lat:40.824,lon:140.740},"岩手":{lat:39.703,lon:141.152},"宮城":{lat:38.268,lon:140.871},"秋田":{lat:39.718,lon:140.102},"山形":{lat:38.240,lon:140.363},"福島":{lat:37.760,lon:140.467},
+    "茨城":{lat:36.341,lon:140.446},"栃木":{lat:36.565,lon:139.883},"群馬":{lat:36.391,lon:139.060},"埼玉":{lat:35.856,lon:139.648},"千葉":{lat:35.604,lon:140.123},"東京":{lat:35.689,lon:139.691},"神奈川":{lat:35.447,lon:139.642},"山梨":{lat:35.663,lon:138.568},"長野":{lat:36.651,lon:138.181},
+    "岐阜":{lat:35.423,lon:136.760},"静岡":{lat:34.975,lon:138.382},"愛知":{lat:35.181,lon:136.906},"三重":{lat:34.730,lon:136.508},
+    "新潟":{lat:37.902,lon:139.023},"富山":{lat:36.695,lon:137.211},"石川":{lat:36.594,lon:136.625},"福井":{lat:36.064,lon:136.221},
+    "滋賀":{lat:35.017,lon:135.854},"京都":{lat:35.011,lon:135.768},"大阪":{lat:34.693,lon:135.502},"兵庫":{lat:34.690,lon:135.195},"奈良":{lat:34.685,lon:135.804},"和歌山":{lat:34.230,lon:135.170},
+    "鳥取":{lat:35.501,lon:134.235},"島根":{lat:35.472,lon:133.050},"岡山":{lat:34.661,lon:133.934},"広島":{lat:34.385,lon:132.455},
+    "徳島":{lat:34.070,lon:134.554},"香川":{lat:34.340,lon:134.043},"愛媛":{lat:33.839,lon:132.765},"高知":{lat:33.559,lon:133.531},
+    "山口":{lat:34.185,lon:131.471},"福岡":{lat:33.590,lon:130.401},"佐賀":{lat:33.263,lon:130.300},"長崎":{lat:32.750,lon:129.872},"熊本":{lat:32.803,lon:130.707},"大分":{lat:33.239,lon:131.612},
+    "宮崎":{lat:31.907,lon:131.420},"鹿児島":{lat:31.596,lon:130.538},"奄美":{lat:28.374,lon:129.493},
+    "沖縄本島":{lat:26.212,lon:127.680},"大東島":{lat:25.843,lon:131.231},"宮古島":{lat:24.805,lon:125.281},"八重山":{lat:24.344,lon:124.155}
+};
+
+const fukMap = {
+    "011000": "11", "012000": "12", "013000": "13", "014030": "18", "014100": "19", 
+    "015000": "16", "016000": "14", "017000": "17",
+    "020000": "31", "030000": "33", "040000": "34", "050000": "32", "060000": "35", "070000": "36",
+    "080000": "40", "090000": "41", "100000": "42", "110000": "43", "120000": "45", "130000": "44", 
+    "140000": "46", "190000": "49", "200000": "48", "210000": "52", "220000": "50", "230000": "51", 
+    "240000": "53", "150000": "54", "160000": "55", "170000": "56", "180000": "57",
+    "250000": "60", "260000": "61", "270000": "62", "280000": "63", "290000": "64", "300000": "65",
+    "310000": "69", "320000": "68", "330000": "66", "340000": "67",
+    "360000": "71", "370000": "72", "380000": "73", "390000": "74",
+    "350000": "81", "400000": "82", "410000": "85", "420000": "84", "430000": "86", "440000": "83",
+    "450000": "87", "460100": "88", "460040": "88", 
+    "471000": "91", "472000": "92", "473000": "93", "474000": "94"
+};
+
+const jmaIconMap = {
+    "100":"100", "101":"101", "102":"102", "103":"102", "104":"104", "105":"104", "106":"102", "107":"102", "108":"102",
+    "110":"110", "111":"110", "112":"112", "113":"112", "114":"112", "115":"114", "116":"114", "117":"114", "118":"112", "119":"112",
+    "120":"102", "121":"102", "122":"112", "123":"112", "124":"112", "125":"112", "126":"112", "127":"112", "128":"112", "129":"112",
+    "130":"100", "131":"100", "132":"101", "140":"102", "160":"104", "170":"104",
+    "200":"200", "201":"201", "202":"202", "203":"202", "204":"204", "205":"204", "206":"202", "207":"202", "208":"202", "209":"200",
+    "210":"210", "211":"210", "212":"212", "213":"212", "214":"212", "215":"214", "216":"214", "217":"214", "218":"212", "219":"212",
+    "220":"202", "221":"202", "222":"212", "223":"212", "224":"212", "225":"212", "226":"212", "227":"212", "228":"212", "229":"212",
+    "230":"200", "231":"200", "240":"202", "250":"204", "260":"204", "270":"204",
+    "300":"300", "301":"301", "302":"302", "303":"303", "304":"300", "306":"300", "308":"300", "309":"303",
+    "311":"311", "313":"313", "314":"314", "315":"314", "316":"311", "317":"313", "320":"311", "321":"313", "322":"303", "323":"311", "324":"311", "325":"311", "328":"300", "329":"303",
+    "340":"400", "350":"300", "361":"411", "371":"413",
+    "400":"400", "401":"401", "402":"402", "403":"403", "405":"400", "406":"400", "407":"400", "409":"403",
+    "411":"411", "413":"413", "414":"414", "420":"411", "421":"413", "422":"414", "423":"411", "425":"411", "426":"411", "427":"414",
+    "450":"400"
+};
+
+const warnMap = {
+    "02":"暴風雪警報","03":"大雨警報","04":"洪水警報","05":"暴風警報","06":"大雪警報","07":"波浪警報","08":"高潮警報","09":"レベル3土砂災害警報",
+    "10":"大雨注意報","12":"大雪注意報","13":"風雪注意報","14":"雷注意報","15":"強風注意報","16":"波浪注意報","17":"融雪注意報","18":"洪水注意報","19":"高潮注意報","20":"濃霧注意報","21":"乾燥注意報","22":"なだれ注意報","23":"低温注意報","24":"霜注意報","25":"着氷注意報","26":"着雪注意報",
+    "32":"暴風雪特別警報","33":"大雨特別警報","35":"暴風特別警報","36":"大雪特別警報","37":"波浪特別警報","38":"高潮特別警報"
+};
+
+// 特定の県から絵文字を取得する便利な関数だよ！
+function getPrefIcon(prefName) {
+    for (const region in regionsData) {
+        const pref = regionsData[region].find(p => p.name === prefName);
+        if (pref && pref.icon) return pref.icon;
+    }
+    return "🗾"; // もし見つからなかったら日本地図！
+}
+
+function decodeWMO(code) {
+    if(code === 0) return {text: "快晴", icon: "☀️"};
+    if(code <= 3) return {text: "晴れ/曇り", icon: "⛅"};
+    if(code >= 45 && code <= 48) return {text: "霧", icon: "🌫️"};
+    if(code >= 51 && code <= 67) return {text: "雨", icon: "🌧️"};
+    if(code >= 71 && code <= 77) return {text: "雪", icon: "❄️"};
+    if(code >= 80 && code <= 82) return {text: "にわか雨", icon: "🌦️"};
+    if(code >= 95) return {text: "雷雨", icon: "⛈️"};
+    return {text: "不明", icon: "❓"};
+}
+
+function telopToText(code) {
+    const c = String(code);
+    const codeMap = {
+        "100":"晴れ", "101":"晴時々曇", "102":"晴一時雨", "104":"晴一時雪", "110":"晴後時々曇", "111":"晴のち曇", "112":"晴のち雨", "115":"晴のち雪", "130":"晴朝夕曇",
+        "200":"曇り", "201":"曇時々晴", "202":"曇一時雨", "204":"曇一時雪", "210":"曇後時々晴", "211":"曇のち晴", "212":"曇のち雨", "215":"曇のち雪",
+        "300":"雨", "301":"雨時々晴", "302":"雨時々止む", "303":"雨時々雪", "311":"雨のち晴", "313":"雨のち曇", "314":"雨のち雪",
+        "400":"雪", "401":"雪時々晴", "402":"雪時々止む", "403":"雪時々雨", "411":"雪のち晴", "413":"雪のち曇", "414":"雪のち雨"
+    };
+    if (codeMap[c]) return codeMap[c];
+    const first = c.charAt(0);
+    if(first === "1") return "晴れ";
+    if(first === "2") return "曇り";
+    if(first === "3") return "雨";
+    if(first === "4") return "雪";
+    return "不明";
+}
+
+/* ==========================================
+   ⚙️ カスタマイズ設定エリア
+========================================== */
+let currentCode = '270000';
+let currentName = '大阪';
+
+const DEFAULT_PREFS = ["滋賀", "京都", "大阪", "兵庫", "奈良", "和歌山"];
+let savedPrefs = [];
+let savedDefault = "大阪";
+
+function loadSettings() {
+    try {
+        const storedPrefs = localStorage.getItem('sorapoke_prefs');
+        const storedDefault = localStorage.getItem('sorapoke_default');
+        
+        const parsedPrefs = storedPrefs ? JSON.parse(storedPrefs) : null;
+        if (Array.isArray(parsedPrefs) && parsedPrefs.length > 0) {
+            savedPrefs = parsedPrefs;
+        } else {
+            savedPrefs = [...DEFAULT_PREFS];
+        }
+        
+        savedDefault = storedDefault ? storedDefault : "大阪";
+        if (!savedPrefs.includes(savedDefault) && savedPrefs.length > 0) {
+            savedDefault = savedPrefs[0];
+        }
+    } catch(e) {
+        console.warn("設定の読み込みエラー。初期設定に戻します。");
+        savedPrefs = [...DEFAULT_PREFS];
+        savedDefault = "大阪";
+    }
+}
+
+function initTabs() {
+    const regionContainer = document.getElementById('regionTabs');
+    const prefContainer = document.getElementById('prefTabs');
+
+    const activeRegions = {};
+    for (const region in regionsData) {
+        const activePrefsInRegion = regionsData[region].filter(p => savedPrefs.includes(p.name));
+        if (activePrefsInRegion.length > 0) {
+            activeRegions[region] = activePrefsInRegion;
+        }
+    }
+
+    const regionNames = Object.keys(activeRegions);
+    if (regionNames.length === 0) return;
+
+    let defaultRegion = regionNames[0];
+    for (const region in activeRegions) {
+        if (activeRegions[region].some(p => p.name === savedDefault)) {
+            defaultRegion = region;
+            break;
+        }
+    }
+
+    let regionHtml = '<div class="tabs">';
+    regionNames.forEach((regionName) => {
+        const isActive = regionName === defaultRegion ? "active" : "";
+        regionHtml += `<div class="tab ${isActive}" onclick="selectRegion('${regionName}', this)">${regionName}</div>`;
+    });
+    regionHtml += '</div>';
+    regionContainer.innerHTML = regionHtml;
+
+    const defaultRegionTab = regionContainer.querySelector('.tab.active');
+    selectRegion(defaultRegion, defaultRegionTab, savedDefault);
+}
+
+function selectRegion(regionName, el, initialPrefName = null) {
+    if(el) {
+        document.querySelectorAll('#regionTabs .tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    const prefContainer = document.getElementById('prefTabs');
+    const activePrefsInRegion = regionsData[regionName].filter(p => savedPrefs.includes(p.name));
+
+    let prefHtml = '<div class="tabs">';
+    activePrefsInRegion.forEach(p => {
+        // ✨ サブタブにも絵文字を表示するようにしたよ！
+        prefHtml += `<div class="sub-tab" data-code="${p.code}" data-name="${p.name}" onclick="updateArea('${p.code}', '${p.name}', this)">${p.icon} ${p.name}</div>`;
+    });
+    prefHtml += '</div>';
+    prefContainer.innerHTML = prefHtml;
+
+    let targetSubTab;
+    if (initialPrefName) {
+        targetSubTab = prefContainer.querySelector(`.sub-tab[data-name="${initialPrefName}"]`);
+    }
+    if (!targetSubTab && activePrefsInRegion.length > 0) {
+        targetSubTab = prefContainer.querySelector('.sub-tab');
+    }
+
+    if (targetSubTab) {
+        setTimeout(() => targetSubTab.click(), 10);
+    }
+}
+
+function openSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'flex';
+    const container = document.getElementById('regionSettingsContainer');
+    const select = document.getElementById('defaultPrefSelect');
+    
+    container.innerHTML = "";
+    select.innerHTML = "";
+
+    for (const regionName in regionsData) {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'region-group';
+        
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'region-header';
+        
+        const regionCheck = document.createElement('input');
+        regionCheck.type = 'checkbox';
+        regionCheck.className = 'custom-checkbox';
+        
+        const prefsInRegion = regionsData[regionName];
+        const allChecked = prefsInRegion.every(p => savedPrefs.includes(p.name));
+        regionCheck.checked = allChecked;
+        
+        const regionLabel = document.createElement('span');
+        regionLabel.innerText = `${regionName}を一括選択`;
+        
+        headerDiv.appendChild(regionCheck);
+        headerDiv.appendChild(regionLabel);
+        groupDiv.appendChild(headerDiv);
+        
+        const gridDiv = document.createElement('div');
+        gridDiv.className = 'pref-grid';
+        
+        const prefCheckboxes = [];
+        
+        prefsInRegion.forEach(p => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'pref-item';
+            
+            const prefCheck = document.createElement('input');
+            prefCheck.type = 'checkbox';
+            prefCheck.className = 'custom-checkbox pref-cb';
+            prefCheck.value = p.name;
+            prefCheck.checked = savedPrefs.includes(p.name);
+            prefCheck.addEventListener('change', updateDefaultSelectOptions);
+            
+            const prefLabel = document.createElement('span');
+            prefLabel.innerText = `${p.icon} ${p.name}`; // ここにも絵文字追加！
+            
+            itemDiv.appendChild(prefCheck);
+            itemDiv.appendChild(prefLabel);
+            gridDiv.appendChild(itemDiv);
+            prefCheckboxes.push(prefCheck);
+        });
+        
+        regionCheck.addEventListener('change', (e) => {
+            prefCheckboxes.forEach(cb => { cb.checked = e.target.checked; });
+            updateDefaultSelectOptions();
+        });
+        
+        groupDiv.appendChild(gridDiv);
+        container.appendChild(groupDiv);
+    }
+    updateDefaultSelectOptions();
+}
+
+function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+
+function updateDefaultSelectOptions() {
+    const select = document.getElementById('defaultPrefSelect');
+    const prevSelected = select.value || savedDefault;
+    select.innerHTML = "";
+    
+    const allChecks = document.querySelectorAll('.pref-cb:checked');
+    if (allChecks.length === 0) {
+        select.innerHTML = '<option value="">1つ以上選択してください</option>';
+        return;
+    }
+    
+    allChecks.forEach(cb => {
+        const opt = document.createElement('option');
+        opt.value = cb.value;
+        opt.innerText = cb.value;
+        select.appendChild(opt);
+    });
+    
+    if (Array.from(allChecks).some(cb => cb.value === prevSelected)) {
+        select.value = prevSelected;
+    }
+}
+
+function saveSettings() {
+    const allChecks = document.querySelectorAll('.pref-cb:checked');
+    if (allChecks.length === 0) {
+        alert("表示する県を1つ以上選んでね！");
+        return;
+    }
+    
+    const newPrefs = Array.from(allChecks).map(cb => cb.value);
+    const newDefault = document.getElementById('defaultPrefSelect').value;
+    
+    localStorage.setItem('sorapoke_prefs', JSON.stringify(newPrefs));
+    localStorage.setItem('sorapoke_default', newDefault);
+    
+    savedPrefs = newPrefs;
+    savedDefault = newDefault;
+    
+    closeSettingsModal();
+    initTabs(); 
+}
+
+function manualRefresh() {
+    updateArea(currentCode, currentName, null);
+    loadWeatherMap();
+    fetchNAOJEvents();
+}
+
+/* ==========================================
+   🌑 月・天文イベント・天気関連エンジン
+========================================== */
+function getLunarDetails(date) {
+    const refDate = new Date(2000, 0, 6, 18, 14);
+    const diff = (date - refDate) / (1000 * 60 * 60 * 24);
+    const age = diff % 29.53;
+    let icon = age < 1 ? "🌑" : age < 7 ? "🌒" : age < 9 ? "🌓" : age < 14 ? "🌔" : age < 16 ? "🌕" : age < 22 ? "🌖" : age < 24 ? "🌗" : "🌘";
+    return { age: age.toFixed(1), icon, name: age < 1 ? "新月" : age < 15 ? "満月へ向かう月" : "満月" , desc: "月の満ち欠けを表示しています。" };
+}
+
+function updateMoonHeader() {
+    const info = getLunarDetails(new Date());
+    document.getElementById('headerMoonIcon').innerText = info.icon;
+    document.getElementById('headerMoonName').innerText = `月齢 ${info.age}`;
+}
+
+function openMoonModal() {
+    document.getElementById('moonModal').style.display = 'flex';
+    const info = getLunarDetails(new Date());
+    document.getElementById('moonLargeIcon').innerText = info.icon;
+    document.getElementById('moonPhaseName').innerText = `月齢 ${info.age}`;
+    renderAstroEvents();
+}
+function closeMoonModal() { document.getElementById('moonModal').style.display = 'none'; }
+
+function renderAstroEvents() {
+    const container = document.getElementById('eventContainer');
+    if(!container) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    let upcomingEvents = [];
+
+    astroEvents.forEach(e => {
+        const match = e.date.match(/(\d{1,2})月(\d{1,2})日/);
+        if (match) {
+            const m = String(match[1]).padStart(2, '0');
+            const d = String(match[2]).padStart(2, '0');
+            const eventDateStr = `2026-${m}-${d}`; 
+            if (eventDateStr >= today) upcomingEvents.push(e);
+        } else {
+            upcomingEvents.push(e);
+        }
+    });
+
+    if(upcomingEvents.length === 0) {
+        container.innerHTML = "今後のイベントは今のところないみたい！";
+        return;
+    }
+
+    container.innerHTML = upcomingEvents.slice(0, 5).map(e => `
+        <div class="event-item">
+            <span class="event-tag">${e.type}</span>
+            <div style="color:white;"><b>${e.name}</b><br><small style="color:#4ade80;">${e.date}</small></div>
+        </div>
+    `).join('');
+}
+
+async function fetchNAOJEvents() {
+    const statusEl = document.getElementById('naojStatus');
+    if (!statusEl) return;
+    try {
+        const now = new Date();
+        const year1 = now.getFullYear();
+        const month1 = now.getMonth() + 1; 
+        let year2 = year1;
+        let month2 = month1 + 1; 
+        if (month2 > 12) { month2 = 1; year2 += 1; }
+
+        const m1Str = String(month1).padStart(2, '0');
+        const m2Str = String(month2).padStart(2, '0');
+        const url1 = `https://www.nao.ac.jp/astro/sky/${year1}/${m1Str}.html`;
+        const url2 = `https://www.nao.ac.jp/astro/sky/${year2}/${m2Str}.html`;
+
+        const [res1, res2] = await Promise.all([
+            fetch(proxyUrl + url1),
+            fetch(proxyUrl + url2).catch(() => null) 
+        ]);
+
+        let newEvents = [];
+        const keywords = ['流星群', '月食', '日食', 'スーパームーン', '接近', '彗星', '満月', '新月', '極大', '最大光度'];
+
+        async function parseMonthlyPage(res, targetMonth) {
+            if (!res || !res.ok) return;
+            const arrayBuffer = await res.arrayBuffer();
+            const textData = new TextDecoder("utf-8").decode(arrayBuffer);
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(textData, "text/html");
+            
+            doc.querySelectorAll('header, footer, nav, .local-nav, .breadcrumb').forEach(el => el.remove());
+            const fullText = doc.body.textContent.replace(/\s+/g, ' ');
+            const parts = fullText.split(/(?:^|[^\d])(\d{1,2})日/); 
+
+            for (let i = 1; i < parts.length; i += 2) {
+                const day = parts[i];
+                let rawDesc = (parts[i+1] || "").trim();
+                
+                if (rawDesc.length > 40) {
+                    const puncMatch = rawDesc.match(/^[^。！？]*[。！？]/);
+                    if (puncMatch && puncMatch[0].length < 40) { rawDesc = puncMatch[0]; } 
+                    else { rawDesc = rawDesc.substring(0, 40) + "..."; }
+                }
+
+                const hasKeyword = keywords.some(kw => rawDesc.includes(kw));
+                const isNoise = rawDesc.includes("カレンダー") || rawDesc.includes("星空") || rawDesc.includes("参照") || rawDesc.includes("特集");
+
+                if (hasKeyword && !isNoise) {
+                    let cleanName = rawDesc.replace(/^[\/／には、\s]+/, '').trim();
+                    if(!cleanName) continue;
+                    let typeTag = "星空";
+                    if (cleanName.includes("流星群")) typeTag = "流星群";
+                    else if (cleanName.includes("食")) typeTag = "天文現象";
+                    else if (cleanName.includes("月") || cleanName.includes("満月") || cleanName.includes("新月")) typeTag = "月";
+                    else if (cleanName.includes("接近")) typeTag = "惑星";
+                    else if (cleanName.includes("彗星")) typeTag = "彗星";
+
+                    const isDuplicate = newEvents.some(e => e.name === cleanName || e.name.includes(cleanName));
+                    if (!isDuplicate) {
+                        newEvents.push({ date: `${targetMonth}月${day}日`, name: cleanName, type: typeTag });
+                    }
+                }
+            }
+        }
+
+        await parseMonthlyPage(res1, month1);
+        if (res2) await parseMonthlyPage(res2, month2);
+
+        if (newEvents.length > 0) {
+            astroEvents = newEvents;
+            renderAstroEvents();
+            statusEl.innerHTML = `✅ ${month1}月・${month2}月の詳細データを取得成功！`;
+            statusEl.style.color = "#4ade80";
+        } else {
+            statusEl.innerHTML = `⚠️ キーワードが見つからなかったよ（予備データを表示）`;
+        }
+    } catch (err) {
+        console.error("NAOJデータ取得エラー:", err);
+        statusEl.innerHTML = `⚠️ 通信エラー: 予備のイベントデータを表示中`;
+    }
+}
+
+async function fetchCurrentWeather(lat, lon, target) {
+    try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=Asia%2FTokyo`);
+        const data = await res.json();
+        const info = decodeWMO(data.current_weather.weathercode);
+        
+        const obsDate = new Date(data.current_weather.time);
+        const timeStr = `${obsDate.getHours()}時${String(obsDate.getMinutes()).padStart(2, '0')}分 現在`;
+
+        if(target === 'pref') {
+            const obsTimeLabel = document.getElementById('obsTimeLabel');
+            if(obsTimeLabel) obsTimeLabel.innerText = timeStr; 
+            document.getElementById('prefCurrentDesc').innerText = `${info.icon} ${info.text}`;
+            document.getElementById('prefCurrentTemp').innerText = `${data.current_weather.temperature}℃`;
+        } else if(target === 'gps') {
+            document.getElementById('gpsLoading').style.display = 'none';
+            document.getElementById('gpsResult').style.display = 'block';
+            document.getElementById('gpsIcon').innerText = info.icon;
+            document.getElementById('gpsDesc').innerText = info.text;
+            document.getElementById('gpsTemp').innerText = `${data.current_weather.temperature}℃`;
+        }
+    } catch(e) { console.error("現在の天気取得エラー:", e); }
+}
+
+function fetchGPSWeather(isAuto = false) {
+    document.getElementById('gpsModal').style.display = 'flex';
+    document.getElementById('gpsLoading').style.display = 'block';
+    document.getElementById('gpsResult').style.display = 'none';
+    
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => { fetchCurrentWeather(pos.coords.latitude, pos.coords.longitude, 'gps'); },
+            (err) => { document.getElementById('gpsLoading').innerText = "GPS情報の取得に失敗しました。"; },
+            { timeout: 8000 }
+        );
+    } else {
+        document.getElementById('gpsLoading').innerText = "お使いのブラウザはGPSに対応していません。";
+    }
+}
+function closeModal() { document.getElementById('gpsModal').style.display = 'none'; }
+
+let mapList = [];
+let currentMapIndex = 0;
+let latestNowIndex = 0;
+
+async function loadWeatherMap() {
+    try {
+        const res = await fetch('https://www.jma.go.jp/bosai/weather_map/data/list.json');
+        const data = await res.json();
+        mapList = [];
+        if(data.near && data.near.now) {
+            mapList.push(...data.near.now);
+            latestNowIndex = mapList.length - 1; 
+        }
+        if(data.near && data.near.ft24) mapList.push(...data.near.ft24);
+        if(data.near && data.near.ft48) mapList.push(...data.near.ft48);
+        
+        currentMapIndex = latestNowIndex; 
+        renderMapDisplay();
+    } catch(e) { document.getElementById('mapBox').innerText = "天気図の取得に失敗しました。"; }
+}
+
+function renderMapDisplay() {
+    if(mapList.length === 0) return;
+    const mapFile = mapList[currentMapIndex];
+    document.getElementById('mapBox').innerHTML = `<img src="https://www.jma.go.jp/bosai/weather_map/data/png/${mapFile}" class="map-img" onclick="window.open(this.src)">`;
+    
+    let typeText = "実況";
+    if (mapFile.includes("ft24") || mapFile.includes("ft48") || mapFile.includes("fsas24")) {
+         typeText = "予想";
+    }
+    document.getElementById('mapLabel').innerText = `[${currentMapIndex + 1}/${mapList.length}] ${typeText}天気図`;
+}
+
+function prevMap() {
+    if(currentMapIndex > 0) {
+        currentMapIndex--;
+        renderMapDisplay();
+    }
+}
+function nextMap() {
+    if(currentMapIndex < mapList.length - 1) {
+        currentMapIndex++;
+        renderMapDisplay();
+    }
+}
+function latestMap() {
+    currentMapIndex = latestNowIndex;
+    renderMapDisplay();
+}
+
+async function updateArea(code, name, el) {
+    currentCode = code;
+    currentName = name;
+    
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if(loadingOverlay) loadingOverlay.style.display = 'block';
+    
+    const areaLabel = document.getElementById('areaLabel');
+    // ✨ 見出しにも絵文字を追加！
+    if(areaLabel) {
+        const prefIcon = getPrefIcon(name);
+        areaLabel.innerText = `${prefIcon} ${name}`;
+    }
+    
+    if(el) {
+        document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    const coords = prefCoordinates[name] || {lat: 35.689, lon: 139.691};
+    fetchCurrentWeather(coords.lat, coords.lon, 'pref');
+
+    document.getElementById('linkProbability').href = `https://www.jma.go.jp/bosai/probability/#area_type=offices&area_code=${code}&lang=ja`;
+    document.getElementById('linkTimeseries').href = `https://www.jma.go.jp/bosai/wdist/timeseries.html#area_type=offices&area_code=${code}`;
+    const fukCode = fukMap[code] || "62"; // 万が一見つからなければ大阪(62)をデフォルトに
+    document.getElementById('linkTwoweek').href = `https://www.data.jma.go.jp/cpd/twoweek/?fuk=${fukCode}`;
+
+    try {
+        const [fRes, oRes, wRes, iRes] = await Promise.all([
+            fetch(`https://www.jma.go.jp/bosai/forecast/data/forecast/${code}.json`),
+            fetch(`https://www.jma.go.jp/bosai/forecast/data/overview_forecast/${code}.json`),
+            fetch(`https://www.jma.go.jp/bosai/warning/data/warning/${code}.json`),
+            fetch(`https://www.jma.go.jp/bosai/information/data/information.json`).catch(() => null)
+        ]);
+
+        const fData = await fRes.json();
+        const oData = await oRes.json();
+        const wData = await wRes.json();
+        let iData = null;
+        if(iRes && iRes.ok) { iData = await iRes.json(); }
+
+        const mainAreas = fData[0]?.timeSeries[0]?.areas || [];
+        let allShortHtml = "";
+        let allWeeklyHtml = "";
+
+        const todayDate = new Date();
+        const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth()+1).padStart(2,'0')}-${String(todayDate.getDate()).padStart(2,'0')}`;
+        const tmrwDate = new Date(todayDate.getTime() + 86400000);
+        const tomorrowStr = `${tmrwDate.getFullYear()}-${String(tmrwDate.getMonth()+1).padStart(2,'0')}-${String(tmrwDate.getDate()).padStart(2,'0')}`;
+
+        mainAreas.forEach((area) => {
+            const areaCode = area.area.code;
+            const areaName = area.area.name;
+            let dailyData = {}; 
+            let popMap = {};
+
+            const initDay = (dStr) => {
+                if (!dailyData[dStr]) {
+                    dailyData[dStr] = { popsArray: ["-", "-", "-", "-"], minTemp: "-", maxTemp: "-", waveText: null };
+                }
+            };
+
+            // --- 降水確率の取得 ---
+            try {
+                const shortPopSeries = fData[0]?.timeSeries?.find(s => s.areas && s.areas.some(a => a.pops));
+                if (shortPopSeries) {
+                    const targetArea = shortPopSeries.areas.find(a => a.area.code === areaCode) || shortPopSeries.areas[0];
+                    shortPopSeries.timeDefines.forEach((t, i) => {
+                        const dateStr = t.split('T')[0];
+                        initDay(dateStr);
+                        const popStr = targetArea.pops[i];
+                        if (popStr !== undefined && popStr !== "") {
+                            const popVal = parseInt(popStr);
+                            if (!isNaN(popVal)) {
+                                if (popMap[dateStr] === undefined || popVal > popMap[dateStr]) popMap[dateStr] = popVal;
+                            }
+                        }
+                    });
+                }
+                const weeklyPopSeries = fData[1]?.timeSeries?.find(s => s.areas && s.areas.some(a => a.pops));
+                if (weeklyPopSeries) {
+                    const targetArea = weeklyPopSeries.areas.find(a => a.area.code === areaCode) || weeklyPopSeries.areas[0];
+                    weeklyPopSeries.timeDefines.forEach((t, i) => {
+                        const dateStr = t.split('T')[0];
+                        initDay(dateStr);
+                        const popStr = targetArea.pops[i];
+                        if (popStr !== undefined && popStr !== "") {
+                            const popVal = parseInt(popStr);
+                            if (!isNaN(popVal)) {
+                                if (popMap[dateStr] === undefined || popVal > popMap[dateStr]) popMap[dateStr] = popVal;
+                            }
+                        }
+                    });
+                }
+
+                if (shortPopSeries) {
+                    const targetArea = shortPopSeries.areas.find(a => a.area.code === areaCode) || shortPopSeries.areas[0];
+                    shortPopSeries.timeDefines.forEach((t, i) => {
+                        const dateStr = t.split('T')[0];
+                        initDay(dateStr);
+                        const timeHourStr = t.split('T')[1].substring(0, 2);
+                        const popStr = targetArea.pops[i];
+                        if (popStr !== undefined && popStr !== "") {
+                            let popIdx = -1;
+                            if (timeHourStr === "00") popIdx = 0;
+                            else if (timeHourStr === "06") popIdx = 1;
+                            else if (timeHourStr === "12") popIdx = 2;
+                            else if (timeHourStr === "18") popIdx = 3;
+                            if (popIdx !== -1) dailyData[dateStr].popsArray[popIdx] = popStr + "%";
+                        }
+                    });
+                }
+            } catch (e) {}
+
+            // --- 短期予報（天気 ＆ 波の予想） ---
+            if (fData[0] && fData[0].timeSeries && fData[0].timeSeries[0]) {
+                const shortWeather = fData[0].timeSeries[0];
+                const targetArea = shortWeather.areas.find(a => a.area.code === areaCode) || shortWeather.areas[0];
+                shortWeather.timeDefines.forEach((time, index) => {
+                    const dateStr = time.split('T')[0];
+                    initDay(dateStr);
+                    
+                    let dayLabel = `${parseInt(dateStr.split('-')[1])}/${parseInt(dateStr.split('-')[2])}`;
+                    if(dateStr === todayStr) dayLabel = "今日";
+                    else if(dateStr === tomorrowStr) dayLabel = "明日";
+                    
+                    let wText = targetArea.weathers ? targetArea.weathers[index] : telopToText(targetArea.weatherCodes[index]);
+                    let waveText = targetArea.waves ? targetArea.waves[index] : null;
+                    
+                    dailyData[dateStr] = Object.assign(dailyData[dateStr], {
+                        dateText: dayLabel,
+                        weatherCode: targetArea.weatherCodes[index],
+                        weatherText: wText,
+                        waveText: waveText
+                    });
+                });
+            }
+
+            // --- 短期予報（気温） ---
+            if (fData[0] && fData[0].timeSeries && fData[0].timeSeries.length > 2) {
+                const shortTemps = fData[0].timeSeries[2];
+                const targetArea = shortTemps.areas.find(a => a.area.code === areaCode) || shortTemps.areas[0];
+                shortTemps.timeDefines.forEach((time, index) => {
+                    const dateStr = time.split('T')[0];
+                    initDay(dateStr);
+                    const timeHour = time.split('T')[1].substring(0, 2);
+                    if (index < targetArea.temps.length) {
+                        const tempValue = targetArea.temps[index];
+                        if (timeHour === "00" || timeHour === "06") { dailyData[dateStr].minTemp = tempValue; }
+                        else if (timeHour === "09" || timeHour === "12" || timeHour === "15") { dailyData[dateStr].maxTemp = tempValue; }
+                    }
+                });
+            }
+
+            // --- 週間予報 ---
+            if (fData.length > 1 && fData[1].timeSeries) {
+                const weeklyWeather = fData[1].timeSeries[0];
+                const weeklyTemps = fData[1].timeSeries.length > 1 ? fData[1].timeSeries[1] : null;
+                const targetAreaW = weeklyWeather.areas.find(a => a.area.code === areaCode) || weeklyWeather.areas[0];
+                
+                weeklyWeather.timeDefines.forEach((time, index) => {
+                    const dateStr = time.split('T')[0];
+                    initDay(dateStr);
+                    const wCode = targetAreaW.weatherCodes[index];
+                    let wText = dailyData[dateStr].weatherText || telopToText(wCode);
+                    if (!dailyData[dateStr].weatherCode) {
+                        dailyData[dateStr] = Object.assign(dailyData[dateStr], {
+                            dateText: `${parseInt(dateStr.split('-')[1])}/${parseInt(dateStr.split('-')[2])}`,
+                            weatherCode: wCode,
+                            weatherText: wText
+                        });
+                    }
+                });
+                
+                if (weeklyTemps) {
+                    const targetAreaT = weeklyTemps.areas.find(a => a.area.code === areaCode) || weeklyTemps.areas[0];
+                    weeklyTemps.timeDefines.forEach((time, index) => {
+                        const dateStr = time.split('T')[0];
+                        initDay(dateStr);
+
+                        if (dateStr === todayStr) return; 
+                        
+                        const minT = targetAreaT.tempsMin ? targetAreaT.tempsMin[index] : undefined;
+                        const maxT = targetAreaT.tempsMax ? targetAreaT.tempsMax[index] : undefined;
+
+                        if (minT !== undefined && minT !== "") {
+                            if (dailyData[dateStr].minTemp === "-") {
+                                dailyData[dateStr].minTemp = minT;
+                            }
+                        }
+                        if (maxT !== undefined && maxT !== "") {
+                            if (dailyData[dateStr].maxTemp === "-") {
+                                dailyData[dateStr].maxTemp = maxT;
+                            }
+                        }
+                    });
+                }
+            }
+
+            let shortHtml = ""; let weeklyHtml = ""; let dayCount = 0;
+            Object.keys(dailyData).sort().forEach(dateStr => {
+                const d = dailyData[dateStr];
+                if (!d.weatherCode) return;
+                
+                if (!d.minTemp || String(d.minTemp).trim() === "") d.minTemp = "-";
+                if (!d.maxTemp || String(d.maxTemp).trim() === "") d.maxTemp = "-";
+
+                if (d.minTemp !== "-" && isNaN(Number(d.minTemp))) d.minTemp = "-";
+                if (d.maxTemp !== "-" && isNaN(Number(d.maxTemp))) d.maxTemp = "-";
+
+                if (dateStr === todayStr && d.minTemp !== "-" && d.minTemp === d.maxTemp) {
+                    d.minTemp = "-";
+                }
+                
+                const mappedCode = jmaIconMap[d.weatherCode] || (String(d.weatherCode).charAt(0) + "00");
+                const iconUrl = `https://www.jma.go.jp/bosai/forecast/img/${mappedCode}.svg`;
+                const popDisplay = popMap[dateStr] !== undefined ? `${popMap[dateStr]}%` : "--%";
+                
+                const displayMax = d.maxTemp !== "-" ? `${d.maxTemp}℃` : "-";
+                const displayMin = d.minTemp !== "-" ? `${d.minTemp}℃` : "-";
+
+                const waveHtml = d.waveText ? `<div class="wave-box">🌊 波: ${d.waveText}</div>` : "";
+
+                if (dayCount < 3) {
+                    let popSectionHtml = `<div class="pop-box">☔ ${popDisplay}</div>`;
+                    if (dayCount < 2 && d.popsArray) {
+                        popSectionHtml = `<table class="pop-table"><tr><th>0-6</th><th>6-12</th><th>12-18</th><th>18-24</th></tr><tr><td>${d.popsArray[0]}</td><td>${d.popsArray[1]}</td><td>${d.popsArray[2]}</td><td>${d.popsArray[3]}</td></tr></table>`;
+                    }
+                    shortHtml += `<div class="forecast-day"><div class="forecast-date">${d.dateText}</div><img src="${iconUrl}" class="weather-img"><div class="weather-text">${d.weatherText}</div>${waveHtml}${popSectionHtml}<div class="temp-box"><span class="temp-max">${displayMax}</span> / <span class="temp-min">${displayMin}</span></div></div>`;
+                } else {
+                    weeklyHtml += `<div class="forecast-day"><div class="forecast-date">${d.dateText}</div><img src="${iconUrl}" class="weather-img"><div class="weather-text">${d.weatherText}</div><div class="pop-box">☔ ${popDisplay}</div><div class="temp-box"><span class="temp-max">${displayMax}</span>/<br><span class="temp-min">${displayMin}</span></div></div>`;
+                }
+                dayCount++;
+            });
+            allShortHtml += `<div class="sub-area-card"><h3 class="sub-forecast-title">${areaName}</h3><div class="forecast-container">${shortHtml}</div></div>`;
+            allWeeklyHtml += `<div class="sub-area-card"><h3 class="sub-forecast-title">${areaName}</h3><div class="forecast-container">${weeklyHtml}</div></div>`;
+        });
+
+        document.getElementById('shortForecastsWrapper').innerHTML = allShortHtml;
+        document.getElementById('weeklyForecastsWrapper').innerHTML = allWeeklyHtml;
+        document.getElementById('overview').innerText = oData.text || "概況なし";
+
+        const alertBox = document.getElementById('alertContainer');
+        let alertHtml = wData.headlineText ? `<div class="warning-badge">📢 ${wData.headlineText}</div>` : "";
+        let alerts = [];
+        function findWarn(o) {
+            if(Array.isArray(o)) o.forEach(findWarn);
+            else if(typeof o === 'object' && o !== null) {
+                if(o.code && warnMap[o.code] && (o.status==="発表" || o.status==="継続")) alerts.push(warnMap[o.code]);
+                for(let k in o) findWarn(o[k]);
+            }
+        }
+        findWarn(wData);
+        alerts = [...new Set(alerts)];
+        if(alerts.length > 0) alerts.forEach(a => alertHtml += `<div class="${a.includes('警報')?'danger-badge':'warning-badge'}">${a}</div>`);
+        else if(!wData.headlineText) alertHtml = `<div class="safe-badge">🟢 現在、警報・注意報はありません</div>`;
+        alertBox.innerHTML = alertHtml;
+        document.getElementById('linkAlert').href = `https://www.jma.go.jp/bosai/warning/#area_type=offices&area_code=${code}&lang=ja`;
+
+        const infoBox = document.getElementById('infoContainer');
+        if(iData) {
+            let localInfos = iData.filter(info => {
+                const title = info.title || info.headTitle || "";
+                const office = info.publishingOffice || "";
+                if (name === "京都" && (title.includes("東京都") || office.includes("東京"))) return false; 
+                return title.includes(name) || office.includes(name);
+            });
+            if (localInfos.length > 0) {
+                localInfos.sort((a, b) => new Date(b.reportDatetime || 0) - new Date(a.reportDatetime || 0));
+                let fHtml = "", cHtml = "", fList = [], cList = [];
+                localInfos.forEach(info => {
+                    const extT = info.headTitle || info.title || info.controlTitle || '気象情報';
+                    if (extT.includes(name) || extT.includes("府") || extT.includes("県")) fList.push(info); else cList.push(info);
+                });
+                function build(list) {
+                    if(!list.length) return "";
+                    let m = ""; let a = "";
+                    list.forEach((info, index) => {
+                        const time = info.reportDatetime ? new Date(info.reportDatetime).toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : "不明";
+                        const extT = info.headTitle || info.title || info.controlTitle || '気象情報';
+                        const sno = info.serialNo || "";
+                        const isL = index === 0;
+                        const item = `<a href="https://www.jma.go.jp/bosai/information/#area_type=offices&area_code=${code}" target="_blank" style="text-decoration:none; color:inherit;"><div class="warning-badge" style="${isL?'background:#fff5f5; border-left-color:#e53935;':'background:#e3f2fd;'}"><div style="font-size:0.75rem; color:#666;">🕒 ${time}</div><div style="font-weight:bold;">${isL?'<span style="background:#e53935; color:#fff; padding:2px 4px; border-radius:3px; font-size:0.6rem;">NEW</span> ':''}${extT}${sno?' 第'+sno+'号':''}</div></div></a>`;
+                        if(isL) m += item; else a += item;
+                    });
+                    if(a) m += `<details class="info-accordion"><summary>過去の発表 (${list.length-1}件)</summary>${a}</details>`;
+                    return m;
+                }
+                infoBox.innerHTML = (fList.length ? `<div style="font-size:0.8rem; font-weight:bold; color:var(--primary);">📍 府県情報</div>` + build(fList) : "") + (cList.length ? `<div style="font-size:0.8rem; font-weight:bold; color:#d97706; margin-top:10px;">🌐 地方情報</div>` + build(cList) : "");
+            } else infoBox.innerHTML = `<div class="safe-badge">🟢 気象情報はありません</div>`;
+        }
+
+        fetch(`https://www.jma.go.jp/bosai/forecaster_comment/data/comments/${code}.txt`).then(res => {
+            const iframe = document.getElementById('commentIframe');
+            if (res.ok) {
+                res.arrayBuffer().then(buf => { if(iframe) iframe.srcdoc = new TextDecoder("utf-8").decode(buf); });
+            } else {
+                if(iframe) iframe.srcdoc = "コメントはありません。";
+            }
+        });
+
+    } catch(e) { console.error("Error:", e); }
+    
+    if(loadingOverlay) {
+        setTimeout(() => { loadingOverlay.style.display = 'none'; }, 500);
+    }
+}
+
+/* 🚀 アプリの起動！ */
+document.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    initTabs();
+    updateMoonHeader();
+    loadWeatherMap();
+    fetchNAOJEvents();
+    
+    setTimeout(() => fetchGPSWeather(false), 1000);
+});
+
+// ▼ 自動更新 ＆ 画面復帰時の更新エンジン ▼
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        console.log("画面がアクティブになりました。データを更新します。");
+        manualRefresh();
+    }
+});
+
+setInterval(() => {
+    if (document.visibilityState === "visible") {
+        console.log("1時間経過しました。データを自動更新します。");
+        manualRefresh();
+    }
+}, 3600000);
+</script>
 </body>
 </html>
