@@ -57,7 +57,7 @@
         .current-temp-large { font-size: 1.8rem; font-weight: bold; color: #0284c7; line-height: 1; }
 
         .forecast-container { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-top: 10px; }
-        .forecast-day { background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 12px; min-width: 130px; text-align: center; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .forecast-day { background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 12px; min-width: 145px; text-align: center; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .forecast-date { font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; color: #555; }
         .weather-img { width: 45px; height: 45px; display: block; margin: 0 auto; }
 
@@ -66,7 +66,10 @@
         .pop-table td { border: 1px solid #b3d9ff; padding: 3px 1px; color: #333; }
         .pop-box { font-size: 0.8rem; color: #0066cc; margin: 5px 0; font-weight: bold; background: #e6f2ff; border-radius: 4px; padding: 2px 0; }
 
-        .wave-box { background: #dbeafe; color: #0284c7; font-size: 0.75rem; padding: 3px; border-radius: 4px; margin-bottom: 5px; text-align: center; border: 1px solid #bae6fd; font-weight: bold; }
+        /* ▼ 海上情報（風と波）用のスタイル ▼ */
+        .marine-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; padding: 6px 4px; margin-bottom: 5px; font-size: 0.75rem; text-align: center; }
+        .wind-info { margin-bottom: 4px; line-height: 1.3; }
+        .wave-info { color: #0284c7; font-weight: bold; margin-top: 4px; border-top: 1px dashed #bbf7d0; padding-top: 4px; }
 
         .weather-text { font-size: 0.8rem; margin: 5px 0; min-height: 2.4em; display: flex; align-items: center; justify-content: center; line-height: 1.3; white-space: normal; word-break: keep-all; }
         .temp-box { font-size: 0.9rem; margin-top: 5px; background: #f4f4f4; border-radius: 4px; padding: 4px; }
@@ -428,6 +431,115 @@ function telopToText(code) {
     if(first === "3") return "雨";
     if(first === "4") return "雪";
     return "不明";
+}
+
+// ✨ 風予報を見やすく変換する関数（バグ修正版！）
+function formatWind(windText) {
+    if (!windText) return "";
+
+    // 1. 気象庁のテキストを前処理して扱いやすくする
+    // 単語がくっついている場合を防ぐため、キーワードの間に確実にスペースを入れるよ！
+    let text = windText.replace(/海上(?:\s|　)*では/g, " ｜海： ");
+    text = text.replace(/([^\s　]+)(?:\s|　)*では/g, " ｜$1： "); // 琵琶湖などを「｜琵琶湖：」に
+    text = text.replace(/後|のち|➔|→/g, " ▶ ");
+    
+    // 強さのキーワードを分離する
+    text = text.replace(/(猛烈な|非常に強く|やや強く|強く)/g, " $1 ");
+    // 風向のキーワードを分離する
+    text = text.replace(/([北南東西]+の風)/g, " $1 ");
+    
+    // 2. 単語（トークン）ごとに分割して順番に処理するよ
+    let tokens = text.split(/(?:　|\s)+/).filter(t => t);
+    
+    let elements = [];
+    let currentElement = { text: "", arrow: "", color: "#2563eb", hasArrow: false };
+    let lastArrow = ""; // 前の風向を記憶する
+
+    const flushElement = () => {
+        if (currentElement.text || currentElement.arrow || currentElement.hasArrow) {
+            if (!currentElement.arrow) {
+                currentElement.arrow = lastArrow; // 風向が省略されていたら前のを引き継ぐ
+            } else {
+                lastArrow = currentElement.arrow; // 新しい風向を記憶
+            }
+            elements.push({...currentElement});
+            currentElement = { text: "", arrow: "", color: "#2563eb", hasArrow: false };
+        }
+    };
+
+    tokens.forEach(token => {
+        if (token === "▶") {
+            flushElement();
+            elements.push({ isArrowStr: true });
+            return;
+        }
+
+        let arrow = "";
+        if (token.includes("北西")) arrow = "↘";
+        else if (token.includes("北東")) arrow = "↙";
+        else if (token.includes("南西")) arrow = "↗";
+        else if (token.includes("南東")) arrow = "↖";
+        else if (token.match(/北(?!東|西)/)) arrow = "↓";
+        else if (token.match(/南(?!東|西)/)) arrow = "↑";
+        else if (token.match(/東(?!北|南)/)) arrow = "←";
+        else if (token.match(/西(?!北|南)/)) arrow = "→";
+
+        let strengthColor = "";
+        // 💡 ここがポイント！「やや強」を「強」より先に判定することで、色が上書きされるバグを直したよ！
+        if (token.includes("猛烈な")) strengthColor = "#9333ea"; // 紫
+        else if (token.includes("非常に強く")) strengthColor = "#dc2626"; // 赤
+        else if (token.includes("やや強く")) strengthColor = "#ca8a04"; // 黄色 (先に判定！)
+        else if (token.includes("強く")) strengthColor = "#ea580c"; // オレンジ
+
+        if (arrow && token.includes("の風")) {
+            if (currentElement.hasArrow) flushElement();
+            currentElement.arrow = arrow;
+            currentElement.hasArrow = true;
+        } else if (strengthColor) {
+            currentElement.color = strengthColor;
+            currentElement.hasArrow = true;
+        } else {
+            // 「日中」「夕方」などのテキスト処理
+            if (currentElement.hasArrow) flushElement();
+            currentElement.text += (currentElement.text ? " " : "") + token;
+        }
+    });
+    flushElement();
+
+    // 3. HTMLに組み立てる
+    let htmlParts = [];
+    elements.forEach(el => {
+        if (el.isArrowStr) {
+            htmlParts.push('<span style="color: #aaa; font-size: 0.7rem; margin: 0 4px;">▶</span>');
+        } else {
+            let partHtml = "";
+            if (el.text) {
+                partHtml += `<span style="font-size: 0.75rem; color: #555; font-weight: normal; margin-right: 2px;">${el.text}</span>`;
+            }
+            if (el.hasArrow || el.arrow) {
+                let dispArrow = el.arrow || lastArrow || "-";
+                partHtml += `<span style="color: ${el.color}; font-weight: bold; font-size: 1.1rem; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));">${dispArrow}</span>`;
+            }
+            htmlParts.push(`<span style="display: inline-flex; align-items: center;">${partHtml}</span>`);
+        }
+    });
+
+    return htmlParts.join('');
+}
+
+// ✨ 波のテキストもコンパクトに変換！
+function formatWave(waveText) {
+    if (!waveText) return "";
+    let text = waveText
+        .replace(/メートル/g, "m")
+        .replace(/ただし/g, "") // 要望通り「ただし」を消去！
+        .replace(/では/g, "")   // 要望通り「では」を消去！
+        .replace(/後|のち/g, " ▶ ") // 風と同じく「▶」に統一！
+        .replace(/　/g, " ");
+    
+    // 余分なスペースを整えてから、▶ をデザインするよ
+    text = text.replace(/\s+/g, " ").trim();
+    return text.replace(/▶/g, '<span style="color: #aaa; font-size: 0.7rem; margin: 0 4px;">▶</span>');
 }
 
 /* ==========================================
@@ -939,7 +1051,7 @@ async function updateArea(code, name, el) {
 
             const initDay = (dStr) => {
                 if (!dailyData[dStr]) {
-                    dailyData[dStr] = { popsArray: ["-", "-", "-", "-"], minTemp: "-", maxTemp: "-", waveText: null };
+                    dailyData[dStr] = { popsArray: ["-", "-", "-", "-"], minTemp: "-", maxTemp: "-", waveText: null, windText: null };
                 }
             };
 
@@ -995,7 +1107,7 @@ async function updateArea(code, name, el) {
                 }
             } catch (e) {}
 
-            // --- 短期予報（天気 ＆ 波の予想） ---
+            // --- 短期予報（天気 ＆ 🍃風 ＆ 🌊波の予想） ---
             if (fData[0] && fData[0].timeSeries && fData[0].timeSeries[0]) {
                 const shortWeather = fData[0].timeSeries[0];
                 const targetArea = shortWeather.areas.find(a => a.area.code === areaCode) || shortWeather.areas[0];
@@ -1009,12 +1121,14 @@ async function updateArea(code, name, el) {
                     
                     let wText = targetArea.weathers ? targetArea.weathers[index] : telopToText(targetArea.weatherCodes[index]);
                     let waveText = targetArea.waves ? targetArea.waves[index] : null;
+                    let windText = targetArea.winds ? targetArea.winds[index] : null; // ✨風データを取得
                     
                     dailyData[dateStr] = Object.assign(dailyData[dateStr], {
                         dateText: dayLabel,
                         weatherCode: targetArea.weatherCodes[index],
                         weatherText: wText,
-                        waveText: waveText
+                        waveText: waveText,
+                        windText: windText
                     });
                 });
             }
@@ -1102,14 +1216,24 @@ async function updateArea(code, name, el) {
                 const displayMax = d.maxTemp !== "-" ? `${d.maxTemp}℃` : "-";
                 const displayMin = d.minTemp !== "-" ? `${d.minTemp}℃` : "-";
 
-                const waveHtml = d.waveText ? `<div class="wave-box">🌊 波: ${d.waveText}</div>` : "";
+                // ✨ 風と波をまとめた表示を作るよ！
+                let marineHtml = "";
+                if (d.windText || d.waveText) {
+                    let windFmt = d.windText ? formatWind(d.windText) : "";
+                    let waveFmt = d.waveText ? formatWave(d.waveText) : "";
+                    
+                    marineHtml = `<div class="marine-box">`;
+                    if (windFmt) marineHtml += `<div class="wind-info">🍃 ${windFmt}</div>`;
+                    if (waveFmt) marineHtml += `<div class="wave-info">🌊 ${waveFmt}</div>`;
+                    marineHtml += `</div>`;
+                }
 
                 if (dayCount < 3) {
                     let popSectionHtml = `<div class="pop-box">☔ ${popDisplay}</div>`;
                     if (dayCount < 2 && d.popsArray) {
                         popSectionHtml = `<table class="pop-table"><tr><th>0-6</th><th>6-12</th><th>12-18</th><th>18-24</th></tr><tr><td>${d.popsArray[0]}</td><td>${d.popsArray[1]}</td><td>${d.popsArray[2]}</td><td>${d.popsArray[3]}</td></tr></table>`;
                     }
-                    shortHtml += `<div class="forecast-day"><div class="forecast-date">${d.dateText}</div><img src="${iconUrl}" class="weather-img"><div class="weather-text">${d.weatherText}</div>${waveHtml}${popSectionHtml}<div class="temp-box"><span class="temp-max">${displayMax}</span> / <span class="temp-min">${displayMin}</span></div></div>`;
+                    shortHtml += `<div class="forecast-day"><div class="forecast-date">${d.dateText}</div><img src="${iconUrl}" class="weather-img"><div class="weather-text">${d.weatherText}</div>${marineHtml}${popSectionHtml}<div class="temp-box"><span class="temp-max">${displayMax}</span> / <span class="temp-min">${displayMin}</span></div></div>`;
                 } else {
                     weeklyHtml += `<div class="forecast-day"><div class="forecast-date">${d.dateText}</div><img src="${iconUrl}" class="weather-img"><div class="weather-text">${d.weatherText}</div><div class="pop-box">☔ ${popDisplay}</div><div class="temp-box"><span class="temp-max">${displayMax}</span>/<br><span class="temp-min">${displayMin}</span></div></div>`;
                 }
