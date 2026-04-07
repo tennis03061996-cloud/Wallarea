@@ -218,22 +218,34 @@
     </div>
 
     <div class="card">
-        <h2 style="border-left-color: #0284c7; color: #0284c7;">2. 短期天気予報・気温</h2>
+        <h2 style="border-left-color: #0284c7; color: #0284c7; display: flex; justify-content: space-between; align-items: flex-end;">
+            <span>2. 短期天気予報・気温</span>
+            <span id="shortForecastTime" style="font-size: 0.7rem; color: #666; font-weight: normal;"></span>
+        </h2>
         <div id="shortForecastsWrapper"></div>
     </div>
 
     <div class="card">
-        <h2 style="border-left-color: #d97706; color: #d97706;">3. 週間天気予報・気温</h2>
+        <h2 style="border-left-color: #d97706; color: #d97706; display: flex; justify-content: space-between; align-items: flex-end;">
+            <span>3. 週間天気予報・気温</span>
+            <span id="weeklyForecastTime" style="font-size: 0.7rem; color: #666; font-weight: normal;"></span>
+        </h2>
         <div id="weeklyForecastsWrapper"></div>
     </div>
 
     <div class="card">
-        <h2>4. 天気概況</h2>
+        <h2 style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <span>4. 天気概況</span>
+            <span id="overviewTime" style="font-size: 0.7rem; color: #666; font-weight: normal;"></span>
+        </h2>
         <div id="overview" class="info-text">読込中...</div>
     </div>
 
     <div class="card">
-        <h2>5. 発表中の注意報・警報</h2>
+        <h2 style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <span>5. 発表中の注意報・警報</span>
+            <span id="alertTime" style="font-size: 0.7rem; color: #666; font-weight: normal;"></span>
+        </h2>
         <div id="alertContainer">確認中...</div>
         <div style="margin-top: 10px; text-align: right;">
             <a id="linkAlert" href="#" target="_blank" style="font-size: 0.85rem; color: #004080; font-weight: bold;">→ 気象庁HPで詳細確認</a>
@@ -540,6 +552,13 @@ function formatWave(waveText) {
     // 余分なスペースを整えてから、▶ をデザインするよ
     text = text.replace(/\s+/g, " ").trim();
     return text.replace(/▶/g, '<span style="color: #aaa; font-size: 0.7rem; margin: 0 4px;">▶</span>');
+}
+
+// ✨ 発表時刻を見やすくフォーマットする関数を追加！
+function formatReportTime(isoString) {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    return `${date.getDate()}日${date.getHours()}時${String(date.getMinutes()).padStart(2, '0')}分 発表`;
 }
 
 /* ==========================================
@@ -1033,6 +1052,12 @@ async function updateArea(code, name, el) {
         const wData = await wRes.json();
         let iData = null;
         if(iRes && iRes.ok) { iData = await iRes.json(); }
+
+        // ✨ 発表時刻を各セクションの見出しにセット！
+        if (fData[0]?.reportDatetime) document.getElementById('shortForecastTime').innerText = formatReportTime(fData[0].reportDatetime);
+        if (fData.length > 1 && fData[1]?.reportDatetime) document.getElementById('weeklyForecastTime').innerText = formatReportTime(fData[1].reportDatetime);
+        if (oData?.reportDatetime) document.getElementById('overviewTime').innerText = formatReportTime(oData.reportDatetime);
+        if (wData?.reportDatetime) document.getElementById('alertTime').innerText = formatReportTime(wData.reportDatetime);
 
         const mainAreas = fData[0]?.timeSeries[0]?.areas || [];
         let allShortHtml = "";
