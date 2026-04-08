@@ -15,7 +15,7 @@
 
     <style>
         /* ==========================================
-           🎨 スタイルシート (旧 style.css)
+           🎨 スタイルシート
         ========================================== */
         :root { --primary: #004080; --warning: #d9534f; --accent: #ffc107; --bg: #f0f2f5; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--bg); color: #333; padding-bottom: 40px; overflow-x: hidden; }
@@ -52,7 +52,6 @@
         /* 実況UIをスッキリコンパクトに！ */
         .current-weather-box { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-radius: 8px; padding: 12px 15px; border: 1px solid #7dd3fc; }
         .current-flex { display: flex; justify-content: space-between; align-items: center; }
-        /* アイコンと気温を小さくしたよ！ */
         .current-icon-large { font-size: 1.4rem; font-weight: bold; color: #0369a1; display: flex; align-items: center; gap: 5px; }
         .current-temp-large { font-size: 1.8rem; font-weight: bold; color: #0284c7; line-height: 1; }
 
@@ -102,7 +101,7 @@
         #loading-overlay { position: fixed; top: 60px; left: 0; right: 0; background: rgba(255,255,255,0.9); text-align: center; padding: 10px; display: none; z-index: 2000; font-size: 0.9rem; font-weight: bold; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-        .modal-content { background: white; width: 85%; max-width: 400px; border-radius: 12px; padding: 20px; position: relative; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: popIn 0.3s ease-out; }
+        .modal-content { background: white; width: 85%; max-width: 450px; border-radius: 12px; padding: 20px; position: relative; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: popIn 0.3s ease-out; }
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .modal-close { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; color: #888; cursor: pointer; font-weight: bold; }
 
@@ -126,6 +125,8 @@
         .pref-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 10px; background: #fff; }
         .pref-item { display: flex; align-items: center; gap: 5px; font-size: 0.9rem; }
         .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+        
+        .badge-sno { background: var(--accent); color: #000; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; margin-left: 5px; font-weight: bold; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -173,12 +174,27 @@
         <div id="gpsResult" style="display:none;">
             <div class="gps-weather-large" id="gpsIcon">☀️</div>
             <p class="gps-temp-large" id="gpsTemp">--℃</p>
-            <p style="font-weight: bold; color: #444;" id="gpsDesc">晴れ</p>
+            <p style="font-weight: bold; color: #444; margin-bottom: 5px;" id="gpsDesc">晴れ</p>
+            <p style="font-size: 0.85rem; color: #0284c7; font-weight: bold;" id="gpsDetails">体感: --℃ / 風: -- --m/s</p>
         </div>
     </div>
 </div>
 
-<!-- ⚙️ 地域と初期表示設定モーダル -->
+<!-- ✨ 情報本文表示用モーダル -->
+<div id="weatherInfoModal" class="modal-overlay">
+    <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
+        <span class="modal-close" onclick="closeWeatherInfoModal()">&times;</span>
+        <h3 class="modal-title" id="infoModalTitle" style="color: var(--primary); font-size: 1rem; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; text-align: left;">情報のタイトル</h3>
+        <div id="infoModalContent" style="flex: 1; overflow-y: auto; text-align: left; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; color: #333; padding: 5px;">
+            情報を取得中...
+        </div>
+        <div style="margin-top: 15px; text-align: center;">
+            <a id="infoModalFallbackLink" href="#" target="_blank" class="action-btn" style="display: none; background: #0284c7; font-size: 0.85rem;">気象庁サイトで一覧を確認する</a>
+        </div>
+    </div>
+</div>
+
+<!-- ⚙️ 設定モーダル -->
 <div class="modal-overlay" id="settingsModal">
     <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
         <span class="modal-close" onclick="closeSettingsModal()">&times;</span>
@@ -189,10 +205,18 @@
             <select id="defaultPrefSelect" class="settings-select"></select>
         </div>
 
-        <div style="font-weight: bold; margin-bottom: 10px; text-align: left; color:var(--primary);">🗾 タブに表示する地域を選択</div>
-        <div id="regionSettingsContainer" style="text-align: left;">
-            <!-- JSで全国のチェックボックスを生成するよ -->
+        <div style="margin-bottom: 15px; text-align: left; background: #fff3cd; padding: 10px; border-radius: 8px; border-left: 4px solid #ffc107;">
+            <label style="font-weight: bold; color: #856404; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="notifyCheckbox" class="custom-checkbox" style="width: 20px; height: 20px;">
+                🚨 警報・特別警報が出たら通知する
+            </label>
+            <div style="font-size: 0.7rem; color: #666; margin-top: 5px; line-height: 1.4;">
+                ※画面を開いている間に発表された際にプッシュ通知でお知らせします。iPhoneの場合は一度ホーム画面に追加（PWA）してから設定してください。
+            </div>
         </div>
+
+        <div style="font-weight: bold; margin-bottom: 10px; text-align: left; color:var(--primary);">🗾 タブに表示する地域を選択</div>
+        <div id="regionSettingsContainer" style="text-align: left;"></div>
 
         <div style="position: sticky; bottom: -20px; background: white; padding: 15px 0 5px; border-top: 1px solid #eee; text-align: center; margin-top: 15px;">
             <button class="action-btn" style="background: var(--primary); width: 100%; font-size:1rem; padding: 12px;" onclick="saveSettings()">設定を保存して更新</button>
@@ -207,13 +231,13 @@
 <div class="container">
     <div class="card" style="padding-bottom: 10px;">
         <h2>1. 現在の実況 (<span id="areaLabel">読込中...</span>)</h2>
-        <!-- よりコンパクトに整えた実況エリア -->
         <div class="current-weather-box">
             <div style="text-align: left; font-size: 0.8rem; font-weight: bold; color: #0369a1; margin-bottom: 2px;" id="obsTimeLabel">--時--分 現在</div>
             <div class="current-flex">
                 <div class="current-icon-large" id="prefCurrentDesc">☀️ --</div>
                 <div class="current-temp-large" id="prefCurrentTemp">--℃</div>
             </div>
+            <div style="font-size: 0.85rem; color: #0284c7; text-align: right; margin-top: 5px; font-weight: bold;" id="prefCurrentDetails">体感: --℃ / 風: -- --m/s</div>
         </div>
     </div>
 
@@ -271,7 +295,6 @@
     <div class="card">
         <h2>8. リンク・解説資料・各種予報</h2>
         
-        <!-- 🔗 リンクの順番を並び替えたよ！ -->
         <div class="btn-grid" style="margin-bottom: 10px;">
             <a href="https://www.jma.go.jp/bosai/map.html#contents=earthquake_map" target="_blank" class="action-btn" style="background:#cc0000;">地震情報</a>
             <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon" target="_blank" class="action-btn" style="background:#ff8c00;">台風情報</a>
@@ -312,7 +335,6 @@ let astroEvents = [
     { date: "10月6日", name: "中秋の名月", type: "月" }
 ];
 
-// ✨ アイコンを各地域に追加したよ！名産品や有名なものを選んでみた！
 const regionsData = {
     "北海道": [
         {name: "宗谷", code: "011000", icon: "🐄"}, {name: "上川・留萌", code: "012000", icon: "🐧"}, {name: "網走・北見・紋別", code: "013000", icon: "🧊"},
@@ -324,7 +346,7 @@ const regionsData = {
         {name: "秋田", code: "050000", icon: "👹"}, {name: "山形", code: "060000", icon: "🍒"}, {name: "福島", code: "070000", icon: "🍑"}
     ],
     "関東甲信": [
-        {name: "茨城", code: "080000", icon: "🍈"}, {name: "栃木", code: "090000", icon: "🍓"}, {name: "群馬", code: "100000", icon: "♨️"},
+        {name: "茨城", code: "080000", icon: "🍈"}, {name: "栃木", code: "090000", icon: "🍓"}, {name: "群群馬", code: "100000", icon: "♨️"},
         {name: "埼玉", code: "110000", icon: "🍘"}, {name: "千葉", code: "120000", icon: "🥜"}, {name: "東京", code: "130000", icon: "🗼"},
         {name: "神奈川", code: "140000", icon: "⚓"}, {name: "山梨", code: "190000", icon: "🍇"}, {name: "長野", code: "200000", icon: "🏔️"}
     ],
@@ -408,13 +430,12 @@ const warnMap = {
     "32":"暴風雪特別警報","33":"大雨特別警報","35":"暴風特別警報","36":"大雪特別警報","37":"波浪特別警報","38":"高潮特別警報"
 };
 
-// 特定の県から絵文字を取得する便利な関数だよ！
 function getPrefIcon(prefName) {
     for (const region in regionsData) {
         const pref = regionsData[region].find(p => p.name === prefName);
         if (pref && pref.icon) return pref.icon;
     }
-    return "🗾"; // もし見つからなかったら日本地図！
+    return "🗾"; 
 }
 
 function decodeWMO(code) {
@@ -445,37 +466,45 @@ function telopToText(code) {
     return "不明";
 }
 
-// ✨ 風予報を見やすく変換する関数（バグ修正版！）
+function getWindDirection(deg) {
+    if (deg >= 337.5 || deg < 22.5) return '北';
+    if (deg >= 22.5 && deg < 67.5) return '北東';
+    if (deg >= 67.5 && deg < 112.5) return '東';
+    if (deg >= 112.5 && deg < 157.5) return '南東';
+    if (deg >= 157.5 && deg < 202.5) return '南';
+    if (deg >= 202.5 && deg < 247.5) return '南西';
+    if (deg >= 247.5 && deg < 292.5) return '西';
+    if (deg >= 292.5 && deg < 337.5) return '北西';
+    return '不明';
+}
+
 function formatWind(windText) {
     if (!windText) return "";
 
-    // 1. 気象庁のテキストを前処理して扱いやすくする
-    // 単語がくっついている場合を防ぐため、キーワードの間に確実にスペースを入れるよ！
     let text = windText.replace(/海上(?:\s|　)*では/g, " ｜海： ");
-    text = text.replace(/([^\s　]+)(?:\s|　)*では/g, " ｜$1： "); // 琵琶湖などを「｜琵琶湖：」に
+    text = text.replace(/([^\s　]+)(?:\s|　)*では/g, " ｜$1： ");
     text = text.replace(/後|のち|➔|→/g, " ▶ ");
-    
-    // 強さのキーワードを分離する
     text = text.replace(/(猛烈な|非常に強く|やや強く|強く)/g, " $1 ");
-    // 風向のキーワードを分離する
     text = text.replace(/([北南東西]+の風)/g, " $1 ");
     
-    // 2. 単語（トークン）ごとに分割して順番に処理するよ
     let tokens = text.split(/(?:　|\s)+/).filter(t => t);
     
     let elements = [];
-    let currentElement = { text: "", arrow: "", color: "#2563eb", hasArrow: false };
-    let lastArrow = ""; // 前の風向を記憶する
+    let currentElement = { text: "", arrow: "", color: "#2563eb", hasArrow: false, isStraight: false };
+    let lastArrow = ""; 
+    let lastArrowStraight = false;
 
     const flushElement = () => {
         if (currentElement.text || currentElement.arrow || currentElement.hasArrow) {
             if (!currentElement.arrow) {
-                currentElement.arrow = lastArrow; // 風向が省略されていたら前のを引き継ぐ
+                currentElement.arrow = lastArrow;
+                currentElement.isStraight = lastArrowStraight;
             } else {
-                lastArrow = currentElement.arrow; // 新しい風向を記憶
+                lastArrow = currentElement.arrow;
+                lastArrowStraight = currentElement.isStraight;
             }
             elements.push({...currentElement});
-            currentElement = { text: "", arrow: "", color: "#2563eb", hasArrow: false };
+            currentElement = { text: "", arrow: "", color: "#2563eb", hasArrow: false, isStraight: false };
         }
     };
 
@@ -487,38 +516,37 @@ function formatWind(windText) {
         }
 
         let arrow = "";
+        let isStraight = false;
         if (token.includes("北西")) arrow = "↘";
         else if (token.includes("北東")) arrow = "↙";
         else if (token.includes("南西")) arrow = "↗";
         else if (token.includes("南東")) arrow = "↖";
-        else if (token.match(/北(?!東|西)/)) arrow = "↓";
-        else if (token.match(/南(?!東|西)/)) arrow = "↑";
-        else if (token.match(/東(?!北|南)/)) arrow = "←";
-        else if (token.match(/西(?!北|南)/)) arrow = "→";
+        else if (token.match(/北(?!東|西)/)) { arrow = "↓"; isStraight = true; } 
+        else if (token.match(/南(?!東|西)/)) { arrow = "↑"; isStraight = true; }
+        else if (token.match(/東(?!北|南)/)) { arrow = "←"; isStraight = true; }
+        else if (token.match(/西(?!北|南)/)) { arrow = "→"; isStraight = true; }
 
         let strengthColor = "";
-        // 💡 ここがポイント！「やや強」を「強」より先に判定することで、色が上書きされるバグを直したよ！
-        if (token.includes("猛烈な")) strengthColor = "#9333ea"; // 紫
-        else if (token.includes("非常に強く")) strengthColor = "#dc2626"; // 赤
-        else if (token.includes("やや強く")) strengthColor = "#ca8a04"; // 黄色 (先に判定！)
-        else if (token.includes("強く")) strengthColor = "#ea580c"; // オレンジ
+        if (token.includes("猛烈な")) strengthColor = "#9333ea"; 
+        else if (token.includes("非常に強く")) strengthColor = "#dc2626"; 
+        else if (token.includes("やや強く")) strengthColor = "#ca8a04"; 
+        else if (token.includes("強く")) strengthColor = "#ea580c"; 
 
         if (arrow && token.includes("の風")) {
             if (currentElement.hasArrow) flushElement();
             currentElement.arrow = arrow;
+            currentElement.isStraight = isStraight;
             currentElement.hasArrow = true;
         } else if (strengthColor) {
             currentElement.color = strengthColor;
             currentElement.hasArrow = true;
         } else {
-            // 「日中」「夕方」などのテキスト処理
             if (currentElement.hasArrow) flushElement();
             currentElement.text += (currentElement.text ? " " : "") + token;
         }
     });
     flushElement();
 
-    // 3. HTMLに組み立てる
     let htmlParts = [];
     elements.forEach(el => {
         if (el.isArrowStr) {
@@ -530,7 +558,10 @@ function formatWind(windText) {
             }
             if (el.hasArrow || el.arrow) {
                 let dispArrow = el.arrow || lastArrow || "-";
-                partHtml += `<span style="color: ${el.color}; font-weight: bold; font-size: 1.1rem; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));">${dispArrow}</span>`;
+                let extraStyle = el.isStraight 
+                    ? `font-weight: 900; -webkit-text-stroke: 0.5px ${el.color}; font-size: 1.2rem;` 
+                    : `font-weight: bold; font-size: 1.1rem;`;
+                partHtml += `<span style="color: ${el.color}; ${extraStyle} filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));">${dispArrow}</span>`;
             }
             htmlParts.push(`<span style="display: inline-flex; align-items: center;">${partHtml}</span>`);
         }
@@ -539,22 +570,19 @@ function formatWind(windText) {
     return htmlParts.join('');
 }
 
-// ✨ 波のテキストもコンパクトに変換！
 function formatWave(waveText) {
     if (!waveText) return "";
     let text = waveText
         .replace(/メートル/g, "m")
-        .replace(/ただし/g, "") // 要望通り「ただし」を消去！
-        .replace(/では/g, "")   // 要望通り「では」を消去！
-        .replace(/後|のち/g, " ▶ ") // 風と同じく「▶」に統一！
+        .replace(/ただし/g, "") 
+        .replace(/では/g, "")   
+        .replace(/後|のち/g, " ▶ ") 
         .replace(/　/g, " ");
     
-    // 余分なスペースを整えてから、▶ をデザインするよ
     text = text.replace(/\s+/g, " ").trim();
     return text.replace(/▶/g, '<span style="color: #aaa; font-size: 0.7rem; margin: 0 4px;">▶</span>');
 }
 
-// ✨ 発表時刻を見やすくフォーマットする関数を追加！
 function formatReportTime(isoString) {
     if (!isoString) return "";
     const date = new Date(isoString);
@@ -587,6 +615,14 @@ function loadSettings() {
         if (!savedPrefs.includes(savedDefault) && savedPrefs.length > 0) {
             savedDefault = savedPrefs[0];
         }
+
+        // ✨ 警報通知設定の読み込み
+        setTimeout(() => {
+            const notifyEnabled = localStorage.getItem('sorapoke_notify') === 'true';
+            const cb = document.getElementById('notifyCheckbox');
+            if (cb) cb.checked = notifyEnabled;
+        }, 100);
+
     } catch(e) {
         console.warn("設定の読み込みエラー。初期設定に戻します。");
         savedPrefs = [...DEFAULT_PREFS];
@@ -641,7 +677,6 @@ function selectRegion(regionName, el, initialPrefName = null) {
 
     let prefHtml = '<div class="tabs">';
     activePrefsInRegion.forEach(p => {
-        // ✨ サブタブにも絵文字を表示するようにしたよ！
         prefHtml += `<div class="sub-tab" data-code="${p.code}" data-name="${p.name}" onclick="updateArea('${p.code}', '${p.name}', this)">${p.icon} ${p.name}</div>`;
     });
     prefHtml += '</div>';
@@ -707,7 +742,7 @@ function openSettingsModal() {
             prefCheck.addEventListener('change', updateDefaultSelectOptions);
             
             const prefLabel = document.createElement('span');
-            prefLabel.innerText = `${p.icon} ${p.name}`; // ここにも絵文字追加！
+            prefLabel.innerText = `${p.icon} ${p.name}`; 
             
             itemDiv.appendChild(prefCheck);
             itemDiv.appendChild(prefLabel);
@@ -768,6 +803,22 @@ function saveSettings() {
     
     savedPrefs = newPrefs;
     savedDefault = newDefault;
+
+    // ✨ 警報通知の設定保存と許可のリクエスト
+    const notifyCb = document.getElementById('notifyCheckbox').checked;
+    if (notifyCb && Notification.permission !== "granted") {
+        Notification.requestPermission().then(permission => {
+            if(permission === "granted") {
+                localStorage.setItem('sorapoke_notify', 'true');
+            } else {
+                alert("ブラウザの通知が許可されなかったため、通知機能はオフになります。設定から通知を許可してください。");
+                document.getElementById('notifyCheckbox').checked = false;
+                localStorage.setItem('sorapoke_notify', 'false');
+            }
+        });
+    } else {
+        localStorage.setItem('sorapoke_notify', notifyCb ? 'true' : 'false');
+    }
     
     closeSettingsModal();
     initTabs(); 
@@ -921,27 +972,67 @@ async function fetchNAOJEvents() {
 }
 
 async function fetchCurrentWeather(lat, lon, target) {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m&timezone=Asia%2FTokyo`;
+    
     try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=Asia%2FTokyo`);
+        let res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error("APIレスポンスエラー");
         const data = await res.json();
-        const info = decodeWMO(data.current_weather.weathercode);
-        
-        const obsDate = new Date(data.current_weather.time);
-        const timeStr = `${obsDate.getHours()}時${String(obsDate.getMinutes()).padStart(2, '0')}分 現在`;
-
-        if(target === 'pref') {
-            const obsTimeLabel = document.getElementById('obsTimeLabel');
-            if(obsTimeLabel) obsTimeLabel.innerText = timeStr; 
-            document.getElementById('prefCurrentDesc').innerText = `${info.icon} ${info.text}`;
-            document.getElementById('prefCurrentTemp').innerText = `${data.current_weather.temperature}℃`;
-        } else if(target === 'gps') {
-            document.getElementById('gpsLoading').style.display = 'none';
-            document.getElementById('gpsResult').style.display = 'block';
-            document.getElementById('gpsIcon').innerText = info.icon;
-            document.getElementById('gpsDesc').innerText = info.text;
-            document.getElementById('gpsTemp').innerText = `${data.current_weather.temperature}℃`;
+        if (!data.current) throw new Error("天気データがありません");
+        updateWeatherUI(data.current, target);
+    } catch(e) {
+        console.warn("Open-Meteoの直接取得に失敗。プロキシ経由でリトライするよ！", e);
+        try {
+            let resProxy = await fetch(proxyUrl + encodeURIComponent(url));
+            const data = await resProxy.json();
+            if (!data.current) throw new Error("プロキシ経由でも天気データがありません");
+            updateWeatherUI(data.current, target);
+        } catch(e2) {
+            console.error("Open-Meteoリトライ失敗:", e2);
+            if(target === 'gps') document.getElementById('gpsLoading').innerText = "天気データの取得に失敗しました。";
         }
-    } catch(e) { console.error("現在の天気取得エラー:", e); }
+    }
+}
+
+function updateWeatherUI(cw, target) {
+    if(!cw) return;
+    
+    const weatherCode = cw.weather_code;
+    const temp = cw.temperature_2m;
+    const apparentTemp = cw.apparent_temperature;
+    const windSpeed = cw.wind_speed_10m;
+    const windDirDeg = cw.wind_direction_10m;
+    
+    const info = decodeWMO(weatherCode);
+    const windDir = getWindDirection(windDirDeg);
+    
+    let timeVal = cw.time;
+    let timeStrToParse = timeVal.includes('+') || timeVal.includes('Z') ? timeVal : timeVal + '+09:00';
+    const obsDate = new Date(timeStrToParse);
+    const timeStr = `${obsDate.getHours()}時${String(obsDate.getMinutes()).padStart(2,'0')}分 現在`;
+
+    if(target === 'pref') {
+        const obsTimeLabel = document.getElementById('obsTimeLabel');
+        if(obsTimeLabel) obsTimeLabel.innerText = timeStr;
+        document.getElementById('prefCurrentDesc').innerText = `${info.icon} ${info.text}`;
+        document.getElementById('prefCurrentTemp').innerText = `${temp}℃`;
+        
+        const detailsEl = document.getElementById('prefCurrentDetails');
+        if(detailsEl) {
+            detailsEl.innerText = `体感: ${Math.round(apparentTemp)}℃ / 風: ${windDir} ${Math.round(windSpeed)}m/s`;
+        }
+    } else {
+        document.getElementById('gpsLoading').style.display = 'none';
+        document.getElementById('gpsResult').style.display = 'block';
+        document.getElementById('gpsIcon').innerText = info.icon;
+        document.getElementById('gpsDesc').innerText = info.text;
+        document.getElementById('gpsTemp').innerText = `${temp}℃`;
+        
+        const detailsEl = document.getElementById('gpsDetails');
+        if(detailsEl) {
+            detailsEl.innerText = `体感: ${Math.round(apparentTemp)}℃ / 風: ${windDir} ${Math.round(windSpeed)}m/s`;
+        }
+    }
 }
 
 function fetchGPSWeather(isAuto = false) {
@@ -953,7 +1044,7 @@ function fetchGPSWeather(isAuto = false) {
         navigator.geolocation.getCurrentPosition(
             (pos) => { fetchCurrentWeather(pos.coords.latitude, pos.coords.longitude, 'gps'); },
             (err) => { document.getElementById('gpsLoading').innerText = "GPS情報の取得に失敗しました。"; },
-            { timeout: 8000 }
+            { timeout: 8000, maximumAge: 0 } 
         );
     } else {
         document.getElementById('gpsLoading').innerText = "お使いのブラウザはGPSに対応していません。";
@@ -1011,6 +1102,55 @@ function latestMap() {
     renderMapDisplay();
 }
 
+// ✨ 気象情報の本文を取得してモーダルで表示する新しい関数！
+async function openWeatherInfoModal(infoId, titleText, fallbackUrl) {
+    const modal = document.getElementById('weatherInfoModal');
+    const contentBox = document.getElementById('infoModalContent');
+    const titleBox = document.getElementById('infoModalTitle');
+    const fallbackLink = document.getElementById('infoModalFallbackLink');
+
+    modal.style.display = 'flex';
+    titleBox.innerHTML = titleText;
+    contentBox.innerHTML = "情報を取得しています...<br><span style='font-size:0.8rem; color:#888;'>※少し時間がかかる場合があります</span>";
+    fallbackLink.style.display = 'none';
+
+    try {
+        const targetJsonUrl = `https://www.jma.go.jp/bosai/information/data/info/${infoId}.json`;
+        let res = await fetch(targetJsonUrl);
+        if (!res.ok) {
+            // 直接取得に失敗したらプロキシ経由で再チャレンジ！
+            res = await fetch(proxyUrl + encodeURIComponent(targetJsonUrl));
+            if (!res.ok) throw new Error("JSON Fetch failed");
+        }
+        
+        const data = await res.json();
+        let htmlContent = "";
+
+        if (data.headlineText) {
+            htmlContent += `<div style="font-weight:bold; color:var(--primary); margin-bottom:15px; border-left:4px solid var(--primary); padding-left:8px;">${data.headlineText}</div>`;
+        }
+        if (data.text) {
+            htmlContent += `<div>${data.text}</div>`;
+        }
+
+        if (!htmlContent) {
+            htmlContent = "本文データが見つかりませんでした。";
+        }
+        
+        contentBox.innerHTML = htmlContent;
+
+    } catch (e) {
+        console.error("Info fetch error", e);
+        contentBox.innerHTML = `<span style='color:red; font-weight:bold;'>データの取得に失敗しました。</span><br><br>恐れ入りますが、以下のボタンから気象庁のサイトで直接ご確認ください。`;
+        fallbackLink.href = fallbackUrl;
+        fallbackLink.style.display = 'inline-block';
+    }
+}
+
+function closeWeatherInfoModal() {
+    document.getElementById('weatherInfoModal').style.display = 'none';
+}
+
 async function updateArea(code, name, el) {
     currentCode = code;
     currentName = name;
@@ -1019,7 +1159,6 @@ async function updateArea(code, name, el) {
     if(loadingOverlay) loadingOverlay.style.display = 'block';
     
     const areaLabel = document.getElementById('areaLabel');
-    // ✨ 見出しにも絵文字を追加！
     if(areaLabel) {
         const prefIcon = getPrefIcon(name);
         areaLabel.innerText = `${prefIcon} ${name}`;
@@ -1036,7 +1175,7 @@ async function updateArea(code, name, el) {
 
     document.getElementById('linkProbability').href = `https://www.jma.go.jp/bosai/probability/#area_type=offices&area_code=${code}&lang=ja`;
     document.getElementById('linkTimeseries').href = `https://www.jma.go.jp/bosai/wdist/timeseries.html#area_type=offices&area_code=${code}`;
-    const fukCode = fukMap[code] || "62"; // 万が一見つからなければ大阪(62)をデフォルトに
+    const fukCode = fukMap[code] || "62"; 
     document.getElementById('linkTwoweek').href = `https://www.data.jma.go.jp/cpd/twoweek/?fuk=${fukCode}`;
 
     try {
@@ -1053,7 +1192,6 @@ async function updateArea(code, name, el) {
         let iData = null;
         if(iRes && iRes.ok) { iData = await iRes.json(); }
 
-        // ✨ 発表時刻を各セクションの見出しにセット！
         if (fData[0]?.reportDatetime) document.getElementById('shortForecastTime').innerText = formatReportTime(fData[0].reportDatetime);
         if (fData.length > 1 && fData[1]?.reportDatetime) document.getElementById('weeklyForecastTime').innerText = formatReportTime(fData[1].reportDatetime);
         if (oData?.reportDatetime) document.getElementById('overviewTime').innerText = formatReportTime(oData.reportDatetime);
@@ -1146,7 +1284,7 @@ async function updateArea(code, name, el) {
                     
                     let wText = targetArea.weathers ? targetArea.weathers[index] : telopToText(targetArea.weatherCodes[index]);
                     let waveText = targetArea.waves ? targetArea.waves[index] : null;
-                    let windText = targetArea.winds ? targetArea.winds[index] : null; // ✨風データを取得
+                    let windText = targetArea.winds ? targetArea.winds[index] : null; 
                     
                     dailyData[dateStr] = Object.assign(dailyData[dateStr], {
                         dateText: dayLabel,
@@ -1289,30 +1427,102 @@ async function updateArea(code, name, el) {
         alertBox.innerHTML = alertHtml;
         document.getElementById('linkAlert').href = `https://www.jma.go.jp/bosai/warning/#area_type=offices&area_code=${code}&lang=ja`;
 
+        // ✨ 警報のプッシュ通知機能！
+        if (localStorage.getItem('sorapoke_notify') === 'true' && Notification.permission === "granted") {
+            const lastAlertsStr = localStorage.getItem(`last_alerts_${code}`) || "[]";
+            const lastAlerts = JSON.parse(lastAlertsStr);
+            const newDangerAlerts = alerts.filter(a => a.includes('警報') && !lastAlerts.includes(a));
+            
+            if (newDangerAlerts.length > 0) {
+                new Notification(`⚠️ そらぽけ - ${name}`, {
+                    body: `新たに ${newDangerAlerts.join(", ")} が発表されました！`,
+                    icon: 'assets/icon.png'
+                });
+            }
+            localStorage.setItem(`last_alerts_${code}`, JSON.stringify(alerts));
+        }
+
         const infoBox = document.getElementById('infoContainer');
         if(iData) {
+            const regionName = Object.keys(regionsData).find(key => regionsData[key].some(p => p.name === name)) || "";
+
             let localInfos = iData.filter(info => {
                 const title = info.title || info.headTitle || "";
                 const office = info.publishingOffice || "";
                 if (name === "京都" && (title.includes("東京都") || office.includes("東京"))) return false; 
-                return title.includes(name) || office.includes(name);
+                
+                // ✨ 全般気象情報の無条件追加を削除し、指定の府県・地方に関連するものだけに絞り込み！
+                return title.includes(name) || 
+                       office.includes(name) || 
+                       (regionName && title.includes(regionName + "地方")) ||
+                       info.publishingOfficeCode === code.substring(0,4)+"00" ||
+                       info.publishingOfficeCode === code;
             });
+
             if (localInfos.length > 0) {
                 localInfos.sort((a, b) => new Date(b.reportDatetime || 0) - new Date(a.reportDatetime || 0));
                 let fHtml = "", cHtml = "", fList = [], cList = [];
                 localInfos.forEach(info => {
-                    const extT = info.headTitle || info.title || info.controlTitle || '気象情報';
+                    const extT = info.title || info.headTitle || info.controlTitle || '気象情報';
                     if (extT.includes(name) || extT.includes("府") || extT.includes("県")) fList.push(info); else cList.push(info);
                 });
+
+                // ✨ アプリ内での本文表示(モーダル呼び出し)に対応したビルドロジック！
                 function build(list) {
                     if(!list.length) return "";
                     let m = ""; let a = "";
                     list.forEach((info, index) => {
                         const time = info.reportDatetime ? new Date(info.reportDatetime).toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : "不明";
-                        const extT = info.headTitle || info.title || info.controlTitle || '気象情報';
-                        const sno = info.serialNo || "";
+                        
+                        // タイトルは無理にいじらず気象庁のものをそのまま表示！
+                        let extT = info.title || info.headTitle || info.controlTitle || '気象情報';
+                        let snoText = "";
+                        
+                        // ✨ すでにタイトルに第〇号が含まれていればバッジ化して抜き出す
+                        let match = extT.match(/第([0-9０-９]+)号/);
+                        if (match) {
+                            extT = extT.replace(match[0], '').trim();
+                            snoText = ` <span class="badge-sno">${match[0]}</span>`;
+                        } else if (info.serialNo && String(info.serialNo) !== "0" && String(info.serialNo) !== "") {
+                            // タイトルに無ければ、データの方からバッジとして追加
+                            snoText = ` <span class="badge-sno">第${parseInt(info.serialNo, 10)}号</span>`;
+                        }
+                        
+                        extT += snoText; // ここでバッジとタイトルを合体！
+
+                        // ✨ 謎の info.url 分岐を削除し、気象庁の仕様に合わせて直接 ID を組み立てる大改修！
+                        let eventId = info.eventId || '';
+                        let infoKind = info.infoKind || '';
+                        let pCode = info.publishingOfficeCode || info.publisherCode || info.officeCode || code;
+                        let serialStr = (info.serialNo !== undefined && info.serialNo !== null && info.serialNo !== "") ? String(info.serialNo) : '0';
+                        
+                        let infoId = "";
+                        if (eventId && infoKind) {
+                            infoId = `${eventId}_${serialStr}_${infoKind}_${pCode}`;
+                        }
+                        
+                        // フォールバック用の気象庁URL
+                        let fallbackUrl = `https://www.jma.go.jp/bosai/information/#area_type=offices&area_code=${code}`;
+                        if (infoId) {
+                            // これで指定通りの URL になるよ！
+                            fallbackUrl = `https://www.jma.go.jp/bosai/information/#area_type=offices&info_id=${infoId}&format=text&area_code=${code}`;
+                        }
+                        
+                        // リンクをクリックしたら `openWeatherInfoModal` を開くように設定！
+                        // モーダルには infoId を渡して JSON を取りに行くようにする
+                        const escapedTitle = extT.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        const onClickAttr = infoId ? `onclick="openWeatherInfoModal('${infoId}', '${escapedTitle}', '${fallbackUrl}'); return false;"` : "";
+
                         const isL = index === 0;
-                        const item = `<a href="https://www.jma.go.jp/bosai/information/#area_type=offices&area_code=${code}" target="_blank" style="text-decoration:none; color:inherit;"><div class="warning-badge" style="${isL?'background:#fff5f5; border-left-color:#e53935;':'background:#e3f2fd;'}"><div style="font-size:0.75rem; color:#666;">🕒 ${time}</div><div style="font-weight:bold;">${isL?'<span style="background:#e53935; color:#fff; padding:2px 4px; border-radius:3px; font-size:0.6rem;">NEW</span> ':''}${extT}${sno?' 第'+sno+'号':''}</div></div></a>`;
+                        const item = `<a href="${fallbackUrl}" ${onClickAttr} target="_blank" style="text-decoration:none; color:inherit;">
+                            <div class="warning-badge" style="${isL?'background:#fff5f5; border-left-color:#e53935;':'background:#e3f2fd;'}">
+                                <div style="font-size:0.75rem; color:#666;">🕒 ${time}</div>
+                                <div style="font-weight:bold; display:flex; align-items:center; flex-wrap:wrap;">
+                                    ${isL?'<span style="background:#e53935; color:#fff; padding:2px 4px; border-radius:3px; font-size:0.6rem; margin-right:5px;">NEW</span>':''}
+                                    ${extT}
+                                </div>
+                            </div>
+                        </a>`;
                         if(isL) m += item; else a += item;
                     });
                     if(a) m += `<details class="info-accordion"><summary>過去の発表 (${list.length-1}件)</summary>${a}</details>`;
