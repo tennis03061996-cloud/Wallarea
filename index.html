@@ -346,7 +346,7 @@ const regionsData = {
         {name: "秋田", code: "050000", icon: "👹"}, {name: "山形", code: "060000", icon: "🍒"}, {name: "福島", code: "070000", icon: "🍑"}
     ],
     "関東甲信": [
-        {name: "茨城", code: "080000", icon: "🍈"}, {name: "栃木", code: "090000", icon: "🍓"}, {name: "群群馬", code: "100000", icon: "♨️"},
+        {name: "茨城", code: "080000", icon: "🍈"}, {name: "栃木", code: "090000", icon: "🍓"}, {name: "群馬", code: "100000", icon: "♨️"},
         {name: "埼玉", code: "110000", icon: "🍘"}, {name: "千葉", code: "120000", icon: "🥜"}, {name: "東京", code: "130000", icon: "🗼"},
         {name: "神奈川", code: "140000", icon: "⚓"}, {name: "山梨", code: "190000", icon: "🍇"}, {name: "長野", code: "200000", icon: "🏔️"}
     ],
@@ -1103,7 +1103,7 @@ function latestMap() {
 }
 
 // ✨ 気象情報の本文を取得してモーダルで表示する新しい関数！
-async function openWeatherInfoModal(infoId, titleText, fallbackUrl) {
+async function openWeatherInfoModal(targetJsonUrl, titleText, fallbackUrl) {
     const modal = document.getElementById('weatherInfoModal');
     const contentBox = document.getElementById('infoModalContent');
     const titleBox = document.getElementById('infoModalTitle');
@@ -1115,7 +1115,6 @@ async function openWeatherInfoModal(infoId, titleText, fallbackUrl) {
     fallbackLink.style.display = 'none';
 
     try {
-        const targetJsonUrl = `https://www.jma.go.jp/bosai/information/data/info/${infoId}.json`;
         let res = await fetch(targetJsonUrl);
         if (!res.ok) {
             // 直接取得に失敗したらプロキシ経由で再チャレンジ！
@@ -1449,69 +1448,69 @@ async function updateArea(code, name, el) {
             let localInfos = iData.filter(info => {
                 const title = info.title || info.headTitle || "";
                 const office = info.publishingOffice || "";
-                if (name === "京都" && (title.includes("東京都") || office.includes("東京"))) return false; 
                 
-                // ✨ 全般気象情報の無条件追加を削除し、指定の府県・地方に関連するものだけに絞り込み！
-                return title.includes(name) || 
-                       office.includes(name) || 
-                       (regionName && title.includes(regionName + "地方")) ||
-                       info.publishingOfficeCode === code.substring(0,4)+"00" ||
-                       info.publishingOfficeCode === code;
+                // ✨ 全般気象情報は広域すぎるため除外
+                if (title.includes("全般気象情報")) return false; 
+                
+                // ✨ 誤検知を防ぐため、他地域の名前が入っている場合は除外（例: 大阪の時に東京がヒットするのを防ぐ）
+                // ただし、タイトルや発信元がその地域そのものを指している場合は残す
+                const isTargetPref = title.includes(name) || office.includes(name) || title.includes(name + "府") || title.includes(name + "県") || title.includes(name + "都");
+                const isTargetRegion = regionName && (title.includes(regionName + "地方") || office.includes(regionName + "地方"));
+                
+                return isTargetPref || isTargetRegion;
             });
 
             if (localInfos.length > 0) {
                 localInfos.sort((a, b) => new Date(b.reportDatetime || 0) - new Date(a.reportDatetime || 0));
-                let fHtml = "", cHtml = "", fList = [], cList = [];
+                let fList = [], cList = [];
                 localInfos.forEach(info => {
                     const extT = info.title || info.headTitle || info.controlTitle || '気象情報';
-                    if (extT.includes(name) || extT.includes("府") || extT.includes("県")) fList.push(info); else cList.push(info);
+                    if (extT.includes(name) || extT.includes("府") || extT.includes("県") || extT.includes("都")) {
+                        fList.push(info); 
+                    } else { 
+                        cList.push(info); 
+                    }
                 });
 
-                // ✨ アプリ内での本文表示(モーダル呼び出し)に対応したビルドロジック！
                 function build(list) {
                     if(!list.length) return "";
                     let m = ""; let a = "";
                     list.forEach((info, index) => {
                         const time = info.reportDatetime ? new Date(info.reportDatetime).toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}) : "不明";
                         
-                        // タイトルは無理にいじらず気象庁のものをそのまま表示！
                         let extT = info.title || info.headTitle || info.controlTitle || '気象情報';
                         let snoText = "";
                         
-                        // ✨ すでにタイトルに第〇号が含まれていればバッジ化して抜き出す
+                        // ✨ 第〇号の処理：すでにタイトルにあれば抽出、無ければserialNoから生成
                         let match = extT.match(/第([0-9０-９]+)号/);
                         if (match) {
                             extT = extT.replace(match[0], '').trim();
                             snoText = ` <span class="badge-sno">${match[0]}</span>`;
-                        } else if (info.serialNo && String(info.serialNo) !== "0" && String(info.serialNo) !== "") {
-                            // タイトルに無ければ、データの方からバッジとして追加
-                            snoText = ` <span class="badge-sno">第${parseInt(info.serialNo, 10)}号</span>`;
+                        } else if (info.serial && String(info.serial) !== "0" && String(info.serial) !== "") {
+                            snoText = ` <span class="badge-sno">第${parseInt(info.serial, 10)}号</span>`;
                         }
-                        
-                        extT += snoText; // ここでバッジとタイトルを合体！
+                        extT += snoText; 
 
-                        // ✨ 謎の info.url 分岐を削除し、気象庁の仕様に合わせて直接 ID を組み立てる大改修！
-                        let eventId = info.eventId || '';
-                        let infoKind = info.infoKind || '';
-                        let pCode = info.publishingOfficeCode || info.publisherCode || info.officeCode || code;
-                        let serialStr = (info.serialNo !== undefined && info.serialNo !== null && info.serialNo !== "") ? String(info.serialNo) : '0';
-                        
-                        let infoId = "";
-                        if (eventId && infoKind) {
-                            infoId = `${eventId}_${serialStr}_${infoKind}_${pCode}`;
+                        // ✨ ユーザーが見つけてくれた「url」パラメータを直接活用する！
+                        let targetJsonUrl = "";
+                        if (info.url) {
+                            // "data/denbun/..." などの相対パスを絶対URLに変換
+                            targetJsonUrl = info.url.startsWith('http') ? info.url : `https://www.jma.go.jp/bosai/information/${info.url}`;
+                        } else {
+                            // urlが無い場合の予備ロジック（一応残しておく）
+                            let eventId = info.eventId || '';
+                            let infoKind = info.infoKind || '';
+                            let pCode = info.publishingOfficeCode || info.publisherCode || info.officeCode || code;
+                            let serialStr = (info.serialNo !== undefined && info.serialNo !== null && info.serialNo !== "") ? String(info.serialNo) : '0';
+                            if (eventId && infoKind) {
+                                targetJsonUrl = `https://www.jma.go.jp/bosai/information/data/info/${eventId}_${serialStr}_${infoKind}_${pCode}.json`;
+                            }
                         }
                         
-                        // フォールバック用の気象庁URL
                         let fallbackUrl = `https://www.jma.go.jp/bosai/information/#area_type=offices&area_code=${code}`;
-                        if (infoId) {
-                            // これで指定通りの URL になるよ！
-                            fallbackUrl = `https://www.jma.go.jp/bosai/information/#area_type=offices&info_id=${infoId}&format=text&area_code=${code}`;
-                        }
                         
-                        // リンクをクリックしたら `openWeatherInfoModal` を開くように設定！
-                        // モーダルには infoId を渡して JSON を取りに行くようにする
                         const escapedTitle = extT.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                        const onClickAttr = infoId ? `onclick="openWeatherInfoModal('${infoId}', '${escapedTitle}', '${fallbackUrl}'); return false;"` : "";
+                        const onClickAttr = targetJsonUrl ? `onclick="openWeatherInfoModal('${targetJsonUrl}', '${escapedTitle}', '${fallbackUrl}'); return false;"` : "";
 
                         const isL = index === 0;
                         const item = `<a href="${fallbackUrl}" ${onClickAttr} target="_blank" style="text-decoration:none; color:inherit;">
