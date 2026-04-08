@@ -1491,13 +1491,19 @@ async function updateArea(code, name, el) {
                         }
                         extT += snoText; 
 
-                        // ✨ ユーザーが見つけてくれた「url」パラメータを直接活用する！
+                        // ✨ jsonNameを使ってURLを生成するロジックに改修！
                         let targetJsonUrl = "";
-                        if (info.url) {
-                            // "data/denbun/..." などの相対パスを絶対URLに変換
+                        let fallbackUrl = `https://www.jma.go.jp/bosai/information/#area_type=offices&area_code=${code}`;
+                        
+                        if (info.jsonName) {
+                            // モーダルで表示するためのJSONのURL
+                            //targetJsonUrl = `https://www.jma.go.jp/bosai/information/data/denbun/${info.jsonName}.json`;
+                            // 万が一の時に飛ぶ気象庁公式のURL
+                            fallbackUrl = `https://www.jma.go.jp/bosai/information/#area_type=offices&info_id=${info.jsonName}&format=text&area_code=${code}`;
+                        } else if (info.url) {
                             targetJsonUrl = info.url.startsWith('http') ? info.url : `https://www.jma.go.jp/bosai/information/${info.url}`;
                         } else {
-                            // urlが無い場合の予備ロジック（一応残しておく）
+                            // 予備ロジック
                             let eventId = info.eventId || '';
                             let infoKind = info.infoKind || '';
                             let pCode = info.publishingOfficeCode || info.publisherCode || info.officeCode || code;
@@ -1506,8 +1512,6 @@ async function updateArea(code, name, el) {
                                 targetJsonUrl = `https://www.jma.go.jp/bosai/information/data/info/${eventId}_${serialStr}_${infoKind}_${pCode}.json`;
                             }
                         }
-                        
-                        let fallbackUrl = `https://www.jma.go.jp/bosai/information/#area_type=offices&area_code=${code}`;
                         
                         const escapedTitle = extT.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                         const onClickAttr = targetJsonUrl ? `onclick="openWeatherInfoModal('${targetJsonUrl}', '${escapedTitle}', '${fallbackUrl}'); return false;"` : "";
