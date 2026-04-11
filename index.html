@@ -299,19 +299,25 @@
             <a href="https://www.jma.go.jp/bosai/map.html#contents=earthquake_map" target="_blank" class="action-btn" style="background:#cc0000;">地震情報</a>
             <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon" target="_blank" class="action-btn" style="background:#ff8c00;">台風情報</a>
         </div>
-        
+
         <div class="btn-grid" style="margin-bottom: 10px;">
+            <a href="#" id="linkNowc" target="_blank" class="action-btn" style="background:#3b82f6;">🌧️ 雨雲レーダー</a>
+            <a href="#" id="linkAmedas" target="_blank" class="action-btn" style="background:#f97316;">🌡️ アメダス(気温)</a>
+        </div>
+
+        <div class="btn-grid" style="margin-bottom: 10px;">
+            <a href="#" id="linkRisk" target="_blank" class="action-btn" style="background:#8b5cf6;">⚠️ キキクル(危険度)</a>
+            <a href="#" id="linkProbability" target="_blank" class="action-btn" style="background:#d946ef;">⚠️ 早期注意情報</a>
+        </div>
+
+        <div class="btn-grid" style="margin-bottom: 10px;">
+            <a href="#" id="linkTimeseries" target="_blank" class="action-btn" style="background:#14b8a6;">🕒 地域時系列予報</a>
+            <a href="#" id="linkTwoweek" target="_blank" class="action-btn" style="background:#f43f5e;">🌡️ 2週間気温予報</a>
+        </div>
+        
+        <div class="btn-grid">
             <a href="https://www.data.jma.go.jp/yoho/data/jishin/kaisetsu_tanki_latest.pdf" target="_blank" class="action-btn" style="background:#0284c7; font-size: 0.8rem;">📘 短期予報解説資料</a>
             <a href="https://www.data.jma.go.jp/yoho/data/jishin/kaisetsu_shukan_latest.pdf" target="_blank" class="action-btn" style="background:#059669; font-size: 0.8rem;">📗 週間予報解説資料</a>
-        </div>
-
-        <div class="btn-grid" style="margin-bottom: 10px;">
-            <a href="#" id="linkProbability" target="_blank" class="action-btn" style="background:#8b5cf6;">⚠️ 早期注意情報</a>
-            <a href="#" id="linkTimeseries" target="_blank" class="action-btn" style="background:#14b8a6;">🕒 地域時系列予報</a>
-        </div>
-
-        <div class="btn-grid">
-            <a href="#" id="linkTwoweek" target="_blank" class="action-btn" style="background:#f43f5e; grid-column: span 2;">🌡️ 2週間気温予報</a>
         </div>
     </div>
     
@@ -1176,6 +1182,9 @@ async function updateArea(code, name, el) {
     document.getElementById('linkTimeseries').href = `https://www.jma.go.jp/bosai/wdist/timeseries.html#area_type=offices&area_code=${code}`;
     const fukCode = fukMap[code] || "62"; 
     document.getElementById('linkTwoweek').href = `https://www.data.jma.go.jp/cpd/twoweek/?fuk=${fukCode}`;
+    document.getElementById('linkAmedas').href = `https://www.jma.go.jp/bosai/map.html#8/${coords.lat}/${coords.lon}/&elem=temp&contents=amedas&interval=60`;
+    document.getElementById('linkNowc').href = `https://www.jma.go.jp/bosai/nowc/#lat:${coords.lat}/lon:${coords.lon}/zoom:8/colordepth:normal/elements:hrpns&slmcs&slmcs_fcst`;
+    document.getElementById('linkRisk').href = `https://www.jma.go.jp/bosai/risk/#lat:${coords.lat}/lon:${coords.lon}/zoom:8/colordepth:normal/elements:land`;
 
     try {
         const [fRes, oRes, wRes, iRes] = await Promise.all([
