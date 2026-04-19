@@ -580,12 +580,44 @@ function formatWave(waveText) {
     if (!waveText) return "";
     let text = waveText
         .replace(/メートル/g, "m")
-        .replace(/ただし/g, "") 
-        .replace(/では/g, "")   
         .replace(/後|のち/g, " ▶ ") 
-        .replace(/　/g, " ");
+        .replace(/　/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
     
-    text = text.replace(/\s+/g, " ").trim();
+    // ✨ 「ただし 〇〇 では」や「〇〇 では」を検知して分割するスマート処理を追加！
+    let firstLine = text;
+    let secondLine = "";
+
+    if (text.includes("ただし")) {
+        let parts = text.split("ただし");
+        firstLine = parts[0].trim();
+        secondLine = parts[1].trim();
+    } else if (text.includes("では")) {
+        // 例: "1.5m 大阪湾 では 0.5m" のように「ただし」が無いパターンも救済
+        let match = text.match(/(.+?)\s+([^\s]+?)\s*では\s*(.+)/);
+        if (match) {
+            firstLine = match[1].trim();
+            secondLine = match[2] + " では " + match[3];
+        }
+    }
+
+    // ✨ 地域指定があったら、改行してカッコいいバッジ風にデザインする！
+    if (secondLine) {
+        // 「〇〇 では 〇〇m」を「〇〇：〇〇m」とスッキリさせる
+        secondLine = secondLine.replace(/では/g, "：").trim();
+        
+        firstLine = firstLine.replace(/▶/g, '<span style="color: #aaa; font-size: 0.7rem; margin: 0 4px;">▶</span>');
+        secondLine = secondLine.replace(/▶/g, '<span style="color: #aaa; font-size: 0.7rem; margin: 0 4px;">▶</span>');
+
+        return `<div style="line-height: 1.3;">
+                    <span style="display: block;">${firstLine}</span>
+                    <span style="display: inline-block; background: #e0f2fe; color: #0284c7; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; margin-top: 3px; font-weight: bold; border: 1px dashed #7dd3fc;">${secondLine}</span>
+                </div>`;
+    }
+
+    // 地域指定がない場合は今まで通りの表示
+    text = text.replace(/ただし/g, "").replace(/では/g, "").trim();
     return text.replace(/▶/g, '<span style="color: #aaa; font-size: 0.7rem; margin: 0 4px;">▶</span>');
 }
 
